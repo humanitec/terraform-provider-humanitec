@@ -7,14 +7,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccResourceDefinitionResource(t *testing.T) {
+func TestAccResourceDefinitionS3Resource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccResourceDefinitionResource("us-east-1"),
+				Config: testAccResourceDefinitionS3Resource("us-east-1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_test", "id", "s3-test"),
 					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_test", "driver_inputs.values.region", "us-east-1"),
@@ -28,7 +28,7 @@ func TestAccResourceDefinitionResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccResourceDefinitionResource("us-east-2"),
+				Config: testAccResourceDefinitionS3Resource("us-east-2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_test", "driver_inputs.values.region", "us-east-2"),
 				),
@@ -38,7 +38,7 @@ func TestAccResourceDefinitionResource(t *testing.T) {
 	})
 }
 
-func testAccResourceDefinitionResource(region string) string {
+func testAccResourceDefinitionS3Resource(region string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "s3_test" {
   id          = "s3-test"
@@ -53,4 +53,60 @@ resource "humanitec_resource_definition" "s3_test" {
   }
 }
 `, region)
+}
+
+func TestAccResourceDefinitionPostgresResource(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceDefinitionPostgresResource("test-1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_resource_definition.postgres_test", "id", "postgres-test"),
+					resource.TestCheckResourceAttr("humanitec_resource_definition.postgres_test", "driver_inputs.values.name", "test-1"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName:            "humanitec_resource_definition.postgres_test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"driver_inputs.secrets"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccResourceDefinitionPostgresResource("test-2"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_resource_definition.postgres_test", "driver_inputs.values.name", "test-2"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccResourceDefinitionPostgresResource(name string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "postgres_test" {
+  id          = "postgres-test"
+  name        = "postgres-test"
+  type        = "postgres"
+  driver_type = "humanitec/postgres-cloudsql-static3"
+
+  driver_inputs = {
+    values = {
+      "instance" = "test:test:test"
+      "name" = "%s"
+      "host" = "127.0.0.1"
+      "port" = "5432"
+    }
+		secrets = {
+      "username" = "test"
+      "password" = "test"
+    }
+  }
+}
+`, name)
 }

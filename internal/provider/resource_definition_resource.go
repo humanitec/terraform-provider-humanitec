@@ -205,19 +205,11 @@ func parseResourceDefinitionResponse(ctx context.Context, res *client.ResourceDe
 
 	driverInputs := res.DriverInputs
 
-	if driverInputs == nil {
-		data.DriverInputs = nil
-	} else {
-		data.DriverInputs = &DefinitionResourceDriverInputsModel{}
-		if driverInputs.Secrets == nil {
-			data.DriverInputs.Secrets = types.MapNull(types.StringType)
-		} else {
-			valuesMap, diag := parseMapInput(driverInputs.Secrets.AdditionalProperties)
-			diags.Append(diag...)
-
-			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
-			diags.Append(diag...)
-			data.DriverInputs.Secrets = m
+	if driverInputs != nil {
+		if data.DriverInputs == nil {
+			data.DriverInputs = &DefinitionResourceDriverInputsModel{
+				Secrets: types.MapNull(types.StringType),
+			}
 		}
 
 		if driverInputs.Values == nil {
