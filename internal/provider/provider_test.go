@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -24,6 +23,6 @@ func testAccPreCheck(t *testing.T) {
 
 func checkEnvVar(t *testing.T, name string) {
 	if v := os.Getenv(name); v == "" {
-		t.Fatal(fmt.Sprintf("Missing environment variable %s", name))
+		t.Fatalf("Missing environment variable %s", name)
 	}
 }

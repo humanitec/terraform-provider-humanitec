@@ -144,6 +144,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 
 func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
+		NewResourceAccountResource,
 		NewResourceDefinitionResource,
 	}
 }
