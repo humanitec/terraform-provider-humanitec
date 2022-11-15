@@ -54,11 +54,11 @@ func (p *HumanitecProvider) GetSchema(ctx context.Context) (tfsdk.Schema, diag.D
 			},
 			"org_id": {
 				Type:     types.StringType,
-				Required: true,
+				Optional: true,
 			},
 			"token": {
 				Type:      types.StringType,
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 			},
 		},

@@ -1,0 +1,30 @@
+name: Terraform Provider Tests
+
+on: [push]
+
+jobs:
+  acceptance:
+    name: Acceptance Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.2.*'
+          terraform_wrapper: false
+      - run: make testacc
+        env:
+          HUMANITEC_ORG_ID: ${{ secrets.HUMANITEC_ORG_ID }}
+          HUMANITEC_TOKEN: ${{ secrets.HUMANITEC_TOKEN }}
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+      - run: go test -v -cover ./...

@@ -287,19 +287,29 @@ func driverInputsFromModel(ctx context.Context, data *DefinitionResourceModel) (
 
 	driverInputs := &client.ValuesSecretsRequest{}
 
-	var driverInputsSecrets map[string]interface{}
+	var driverInputsSecrets map[string]string
 	diags.Append(data.DriverInputs.Secrets.ElementsAs(ctx, &driverInputsSecrets, false)...)
+
+	secrets := make(map[string]interface{}, len(driverInputsSecrets))
+	for k, v := range driverInputsSecrets {
+		secrets[k] = v
+	}
 	if driverInputsSecrets != nil {
 		driverInputs.Secrets = &client.ValuesSecretsRequest_Secrets{
-			AdditionalProperties: driverInputsSecrets,
+			AdditionalProperties: secrets,
 		}
 	}
 
-	var driverInputsValues map[string]interface{}
+	var driverInputsValues map[string]string
 	diags.Append(data.DriverInputs.Values.ElementsAs(ctx, &driverInputsValues, false)...)
+
+	values := make(map[string]interface{}, len(driverInputsValues))
+	for k, v := range driverInputsValues {
+		values[k] = v
+	}
 	if driverInputsValues != nil {
 		driverInputs.Values = &client.ValuesSecretsRequest_Values{
-			AdditionalProperties: driverInputsValues,
+			AdditionalProperties: values,
 		}
 	}
 
@@ -342,6 +352,8 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
+
+	tflog.Info(ctx, "response", map[string]interface{}{"string": string(httpResp.Body)})
 
 	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
@@ -413,6 +425,8 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
+
+	tflog.Info(ctx, "response", map[string]interface{}{"string": string(httpResp.Body)})
 
 	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
