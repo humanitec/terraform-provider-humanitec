@@ -93,7 +93,7 @@ resource "humanitec_resource_definition" "postgres_test" {
   id          = "postgres-test"
   name        = "postgres-test"
   type        = "postgres"
-  driver_type = "humanitec/postgres-cloudsql-static3"
+  driver_type = "humanitec/postgres-cloudsql-static"
 
   driver_inputs = {
     values = {

@@ -174,27 +174,40 @@ func parseOptionalString(input *string) types.String {
 	return types.StringValue(*input)
 }
 
-func parseMapInput(input map[string]interface{}) (map[string]string, diag.Diagnostics) {
+func parseMapInput(driver *client.DriverDefinitionResponse, input map[string]interface{}) (map[string]string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	m := make(map[string]string, len(input))
-	for k, iv := range input {
-		var v string
-		switch iv := iv.(type) {
-		case int:
-			v = strconv.FormatInt(int64(iv), 10)
-		case string:
-			v = iv
-		default:
-			diags.AddError("Unexpected driver input type", fmt.Sprintf("Received unexpected driver input type %T", iv))
+	inputSchema := driver.InputsSchema.AdditionalProperties
+
+	lenDriverInput := len(input)
+	inputProperties, ok := valueAtPath[map[string]interface{}](inputSchema, []string{"properties", "values", "properties"})
+	if lenDriverInput > 0 && !ok {
+		diags.AddError("Client Error", fmt.Sprintf("No value inputs expected in driver input schema: %v", inputSchema))
+		return nil, diags
+	}
+
+	inputMap := make(map[string]string, lenDriverInput)
+	for k, v := range input {
+		propertyType, ok := valueAtPath[string](inputProperties, []string{k, "type"})
+		if !ok {
+			diags.AddError("Client Error", fmt.Sprintf("Property \"%s\" not found in schema: %v", k, inputSchema))
+			continue
 		}
 
-		m[k] = v
+		switch propertyType {
+		case "string":
+			inputMap[k] = v.(string)
+		case "integer":
+			inputMap[k] = strconv.FormatInt(int64(v.(float64)), 10)
+		default:
+			diags.AddError("Client Error", fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\": %v", propertyType, k, inputSchema))
+			continue
+		}
 	}
-	return m, diags
+	return inputMap, diags
 }
 
-func parseResourceDefinitionResponse(ctx context.Context, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
+func parseResourceDefinitionResponse(ctx context.Context, driver *client.DriverDefinitionResponse, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	data.ID = types.StringValue(res.Id)
@@ -215,7 +228,7 @@ func parseResourceDefinitionResponse(ctx context.Context, res *client.ResourceDe
 		if driverInputs.Values == nil {
 			data.DriverInputs.Values = types.MapNull(types.StringType)
 		} else {
-			valuesMap, diag := parseMapInput(driverInputs.Values.AdditionalProperties)
+			valuesMap, diag := parseMapInput(driver, driverInputs.Values.AdditionalProperties)
 			diags.Append(diag...)
 
 			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
@@ -274,38 +287,107 @@ func optionalStringFromModel(input types.String) *string {
 // 	return &criteria
 // }
 
-func driverInputsFromModel(ctx context.Context, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
+func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[string]interface{}, field string) (map[string]interface{}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	var driverInput map[string]string
+	diags.Append(data.ElementsAs(ctx, &driverInput, false)...)
+
+	if driverInput == nil {
+		return nil, diags
+	}
+
+	lenDriverInput := len(driverInput)
+	inputProperties, ok := valueAtPath[map[string]interface{}](inputSchema, []string{"properties", field, "properties"})
+	if lenDriverInput > 0 && !ok {
+		diags.AddError("Client Error", fmt.Sprintf("No %s inputs expected in driver input schema: %v", field, inputSchema))
+		return nil, diags
+	}
+
+	inputMap := make(map[string]interface{}, lenDriverInput)
+	for k, v := range driverInput {
+		propertyType, ok := valueAtPath[string](inputProperties, []string{k, "type"})
+		if !ok {
+			diags.AddError("Client Error", fmt.Sprintf("Property \"%s\" not found in schema: %v", k, inputSchema))
+			continue
+		}
+
+		switch propertyType {
+		case "string":
+			inputMap[k] = v
+		case "integer":
+			intVar, err := strconv.Atoi(v)
+			if err != nil {
+				diags.AddError("Client Error", fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to int: %s", k, v, err.Error()))
+				continue
+			}
+			inputMap[k] = intVar
+		default:
+			diags.AddError("Client Error", fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\": %v", propertyType, k, inputSchema))
+			continue
+		}
+
+	}
+
+	return inputMap, diags
+}
+
+func driverInputsFromModel(ctx context.Context, driver *client.DriverDefinitionResponse, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	driverInputs := &client.ValuesSecretsRequest{}
 
-	var driverInputsSecrets map[string]string
-	diags.Append(data.DriverInputs.Secrets.ElementsAs(ctx, &driverInputsSecrets, false)...)
-
-	secrets := make(map[string]interface{}, len(driverInputsSecrets))
-	for k, v := range driverInputsSecrets {
-		secrets[k] = v
-	}
-	if driverInputsSecrets != nil {
+	secrets, diags := driverInputToMap(ctx, data.DriverInputs.Secrets, driver.InputsSchema.AdditionalProperties, "secrets")
+	diags.Append(diags...)
+	if secrets != nil {
 		driverInputs.Secrets = &client.ValuesSecretsRequest_Secrets{
 			AdditionalProperties: secrets,
 		}
 	}
 
-	var driverInputsValues map[string]string
-	diags.Append(data.DriverInputs.Values.ElementsAs(ctx, &driverInputsValues, false)...)
-
-	values := make(map[string]interface{}, len(driverInputsValues))
-	for k, v := range driverInputsValues {
-		values[k] = v
-	}
-	if driverInputsValues != nil {
+	values, diags := driverInputToMap(ctx, data.DriverInputs.Values, driver.InputsSchema.AdditionalProperties, "values")
+	diags.Append(diags...)
+	if values != nil {
 		driverInputs.Values = &client.ValuesSecretsRequest_Values{
 			AdditionalProperties: values,
 		}
 	}
 
-	return driverInputs, nil
+	return driverInputs, diags
+}
+
+func (r *ResourceDefinitionResource) driverByDriverType(ctx context.Context, driverType string) (*client.DriverDefinitionResponse, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	httpResp, err := r.client.GetOrgsOrgIdResourcesDriversWithResponse(ctx, r.orgId)
+	if err != nil {
+		diags.AddError("Client Error", fmt.Sprintf("Unable to get drivers, got error: %s", err))
+		return nil, diags
+	}
+
+	if httpResp.StatusCode() != 200 {
+		diags.AddError("Client Error", fmt.Sprintf("Unable to get drivers, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		return nil, diags
+	}
+
+	if httpResp.JSON200 == nil {
+		diags.AddError("Client Error", fmt.Sprintf("Unable to get drivers, missing body, body: %s", httpResp.Body))
+		return nil, diags
+	}
+
+	driversByType := map[string]*client.DriverDefinitionResponse{}
+	for _, d := range *httpResp.JSON200 {
+		d := d
+		driversByType[fmt.Sprintf("%s/%s", d.OrgId, d.Id)] = &d
+	}
+
+	driver, ok := driversByType[driverType]
+	if !ok {
+		diags.AddError("Client Error", fmt.Sprintf("Not driver found for type: %s", driverType))
+		return nil, diags
+	}
+
+	return driver, diags
 }
 
 func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -318,9 +400,16 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	// TODO Cast driver inputs
 	// criteria := criteriaFromModel(data)
-	driverInputs, diag := driverInputsFromModel(ctx, data)
+
+	driverType := data.DriverType.ValueString()
+	driver, diag := r.driverByDriverType(ctx, driverType)
+	resp.Diagnostics.Append(diag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	driverInputs, diag := driverInputsFromModel(ctx, driver, data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -347,7 +436,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 
 	tflog.Info(ctx, "response", map[string]interface{}{"string": string(httpResp.Body)})
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -377,7 +466,13 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, httpResp.JSON200, data)...)
+	driver, diag := r.driverByDriverType(ctx, *httpResp.JSON200.DriverType)
+	resp.Diagnostics.Append(diag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -397,7 +492,14 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 	}
 
 	name := data.Name.ValueString()
-	driverInputs, diag := driverInputsFromModel(ctx, data)
+	driverType := data.DriverType.ValueString()
+	driver, diag := r.driverByDriverType(ctx, driverType)
+	resp.Diagnostics.Append(diag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	driverInputs, diag := driverInputsFromModel(ctx, driver, data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -420,7 +522,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 
 	tflog.Info(ctx, "response", map[string]interface{}{"string": string(httpResp.Body)})
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -466,10 +568,14 @@ func (r *ResourceDefinitionResource) ImportState(ctx context.Context, req resour
 		return
 	}
 
-	tflog.Info(ctx, string(httpResp.Body))
+	driver, diag := r.driverByDriverType(ctx, *httpResp.JSON200.DriverType)
+	resp.Diagnostics.Append(diag...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	data := &DefinitionResourceModel{}
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
