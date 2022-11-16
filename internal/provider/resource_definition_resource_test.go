@@ -110,3 +110,58 @@ resource "humanitec_resource_definition" "postgres_test" {
 }
 `, name)
 }
+
+func TestAccResourceDefinitionGKEResource(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceDefinitionGKEResource("test-1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_resource_definition.gke_test", "id", "gke-test"),
+					resource.TestCheckResourceAttr("humanitec_resource_definition.gke_test", "driver_inputs.values.name", "test-1"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName:            "humanitec_resource_definition.gke_test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"driver_inputs.secrets"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccResourceDefinitionGKEResource("test-2"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_resource_definition.gke_test", "driver_inputs.values.name", "test-2"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccResourceDefinitionGKEResource(name string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "gke_test" {
+  id          = "gke-test"
+  name        = "gke-test"
+  type        = "k8s-cluster"
+  driver_type = "humanitec/k8s-cluster-gke"
+
+  driver_inputs = {
+    values = {
+      "loadbalancer" = "1.1.1.1"
+      "name" = "%s"
+      "project_id" = "test"
+      "zone" = "europe-west3"
+    }
+		secrets = {
+      "credentials" = "{}"
+    }
+  }
+}
+`, name)
+}

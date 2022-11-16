@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -68,6 +69,9 @@ func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schem
 				Required:            true,
 				MarkdownDescription: "",
 				Type:                types.StringType,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					resource.RequiresReplace(),
+				},
 			},
 			"name": {
 				MarkdownDescription: "",
@@ -78,11 +82,17 @@ func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schem
 				MarkdownDescription: "",
 				Required:            true,
 				Type:                types.StringType,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					resource.RequiresReplace(),
+				},
 			},
 			"driver_type": {
 				MarkdownDescription: "",
 				Required:            true,
 				Type:                types.StringType,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					resource.RequiresReplace(),
+				},
 			},
 			"driver_account": {
 				MarkdownDescription: "",
@@ -199,6 +209,13 @@ func parseMapInput(driver *client.DriverDefinitionResponse, input map[string]int
 			inputMap[k] = v.(string)
 		case "integer":
 			inputMap[k] = strconv.FormatInt(int64(v.(float64)), 10)
+		case "object":
+			obj, err := json.Marshal(v)
+			if err != nil {
+				diags.AddError("Client Error", fmt.Sprintf("Failed to marshal property \"%s\": %s", k, err.Error()))
+				continue
+			}
+			inputMap[k] = string(obj)
 		default:
 			diags.AddError("Client Error", fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\": %v", propertyType, k, inputSchema))
 			continue
@@ -322,6 +339,13 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 				continue
 			}
 			inputMap[k] = intVar
+		case "object":
+			var obj map[string]interface{}
+			if err := json.Unmarshal([]byte(v), &obj); err != nil {
+				diags.AddError("Client Error", fmt.Sprintf("Failed to unmarshal property \"%s\": %s", k, err.Error()))
+				continue
+			}
+			inputMap[k] = obj
 		default:
 			diags.AddError("Client Error", fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\": %v", propertyType, k, inputSchema))
 			continue
