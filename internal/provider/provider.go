@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/humanitec/terraform-provider-humanitec/internal/client"
 )
 
@@ -118,12 +119,10 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 	// Example client configuration for data sources and resources
 
 	client, err := client.NewClientWithResponses(host, func(c *client.Client) error {
-		c.RequestEditors = append(c.RequestEditors, func(_ context.Context, req *http.Request) error {
+		c.RequestEditors = append(c.RequestEditors, func(ctx context.Context, req *http.Request) error {
 			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
-			if os.Getenv("DEBUG") == "1" {
-				fmt.Println(req)
-			}
+			tflog.Debug(ctx, "req", map[string]interface{}{"req": req})
 			return nil
 		})
 		return nil
