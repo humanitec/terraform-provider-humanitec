@@ -69,6 +69,9 @@ func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schem
 				Required:            true,
 				MarkdownDescription: "",
 				Type:                types.StringType,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					resource.RequiresReplace(),
+				},
 			},
 			"name": {
 				MarkdownDescription: "",
@@ -79,11 +82,17 @@ func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schem
 				MarkdownDescription: "",
 				Required:            true,
 				Type:                types.StringType,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					resource.RequiresReplace(),
+				},
 			},
 			"driver_type": {
 				MarkdownDescription: "",
 				Required:            true,
 				Type:                types.StringType,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					resource.RequiresReplace(),
+				},
 			},
 			"driver_account": {
 				MarkdownDescription: "",
