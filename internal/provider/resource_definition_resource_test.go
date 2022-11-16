@@ -102,7 +102,7 @@ resource "humanitec_resource_definition" "postgres_test" {
       "host" = "127.0.0.1"
       "port" = "5432"
     }
-		secrets = {
+    secrets = {
       "username" = "test"
       "password" = "test"
     }
@@ -158,7 +158,7 @@ resource "humanitec_resource_definition" "gke_test" {
       "project_id" = "test"
       "zone" = "europe-west3"
     }
-		secrets = {
+    secrets = {
       "credentials" = "{}"
     }
   }
