@@ -7,35 +7,94 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccResourceDefinitionS3Resource(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccResourceDefinitionS3Resource("us-east-1"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_test", "id", "s3-test"),
-					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_test", "driver_inputs.values.region", "us-east-1"),
-				),
+func TestAccResourceDefinition(t *testing.T) {
+	tests := []struct {
+		name                         string
+		configCreate                 func() string
+		configUpdate                 func() string
+		resourceAttrName             string
+		resourceAttrNameIDValue      string
+		resourceAttrNameUpdateKey    string
+		resourceAttrNameUpdateValue1 string
+		resourceAttrNameUpdateValue2 string
+	}{
+		{
+			name: "S3",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3Resource("us-east-1")
 			},
-			// ImportState testing
-			{
-				ResourceName:      "humanitec_resource_definition.s3_test",
-				ImportState:       true,
-				ImportStateVerify: true,
+			resourceAttrNameIDValue:      "s3-test",
+			resourceAttrNameUpdateKey:    "driver_inputs.values.region",
+			resourceAttrNameUpdateValue1: "us-east-1",
+			resourceAttrName:             "humanitec_resource_definition.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3Resource("us-east-2")
 			},
-			// Update and Read testing
-			{
-				Config: testAccResourceDefinitionS3Resource("us-east-2"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_test", "driver_inputs.values.region", "us-east-2"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
+			resourceAttrNameUpdateValue2: "us-east-2",
 		},
-	})
+		{
+			name: "Postgres",
+			configCreate: func() string {
+				return testAccResourceDefinitionPostgresResource("test-1")
+			},
+			resourceAttrNameIDValue:      "postgres-test",
+			resourceAttrNameUpdateKey:    "driver_inputs.values.name",
+			resourceAttrNameUpdateValue1: "test-1",
+			resourceAttrName:             "humanitec_resource_definition.postgres_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionPostgresResource("test-2")
+			},
+			resourceAttrNameUpdateValue2: "test-2",
+		},
+		{
+			name: "GKE",
+			configCreate: func() string {
+				return testAccResourceDefinitionGKEResource("test-1")
+			},
+			resourceAttrNameIDValue:      "gke-test",
+			resourceAttrNameUpdateKey:    "driver_inputs.values.name",
+			resourceAttrNameUpdateValue1: "test-1",
+			resourceAttrName:             "humanitec_resource_definition.gke_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionGKEResource("test-2")
+			},
+			resourceAttrNameUpdateValue2: "test-2",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{
+					// Create and Read testing
+					{
+						Config: tc.configCreate(),
+						Check: resource.ComposeAggregateTestCheckFunc(
+							resource.TestCheckResourceAttr(tc.resourceAttrName, "id", tc.resourceAttrNameIDValue),
+							resource.TestCheckResourceAttr(tc.resourceAttrName, tc.resourceAttrNameUpdateKey, tc.resourceAttrNameUpdateValue1),
+						),
+					},
+					// ImportState testing
+					{
+						ResourceName:            tc.resourceAttrName,
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"driver_inputs.secrets"},
+					},
+					// Update and Read testing
+					{
+						Config: tc.configUpdate(),
+						Check: resource.ComposeAggregateTestCheckFunc(
+							resource.TestCheckResourceAttr(tc.resourceAttrName, tc.resourceAttrNameUpdateKey, tc.resourceAttrNameUpdateValue2),
+						),
+					},
+					// Delete testing automatically occurs in TestCase
+				},
+			})
+		})
+	}
 }
 
 func testAccResourceDefinitionS3Resource(region string) string {
@@ -53,38 +112,6 @@ resource "humanitec_resource_definition" "s3_test" {
   }
 }
 `, region)
-}
-
-func TestAccResourceDefinitionPostgresResource(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccResourceDefinitionPostgresResource("test-1"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_resource_definition.postgres_test", "id", "postgres-test"),
-					resource.TestCheckResourceAttr("humanitec_resource_definition.postgres_test", "driver_inputs.values.name", "test-1"),
-				),
-			},
-			// ImportState testing
-			{
-				ResourceName:            "humanitec_resource_definition.postgres_test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"driver_inputs.secrets"},
-			},
-			// Update and Read testing
-			{
-				Config: testAccResourceDefinitionPostgresResource("test-2"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_resource_definition.postgres_test", "driver_inputs.values.name", "test-2"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
-		},
-	})
 }
 
 func testAccResourceDefinitionPostgresResource(name string) string {
@@ -109,38 +136,6 @@ resource "humanitec_resource_definition" "postgres_test" {
   }
 }
 `, name)
-}
-
-func TestAccResourceDefinitionGKEResource(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccResourceDefinitionGKEResource("test-1"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_resource_definition.gke_test", "id", "gke-test"),
-					resource.TestCheckResourceAttr("humanitec_resource_definition.gke_test", "driver_inputs.values.name", "test-1"),
-				),
-			},
-			// ImportState testing
-			{
-				ResourceName:            "humanitec_resource_definition.gke_test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"driver_inputs.secrets"},
-			},
-			// Update and Read testing
-			{
-				Config: testAccResourceDefinitionGKEResource("test-2"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_resource_definition.gke_test", "driver_inputs.values.name", "test-2"),
-				),
-			},
-			// Delete testing automatically occurs in TestCase
-		},
-	})
 }
 
 func testAccResourceDefinitionGKEResource(name string) string {
