@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -225,22 +226,5 @@ func (r *ResourceAccountResource) Delete(ctx context.Context, req resource.Delet
 }
 
 func (r *ResourceAccountResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	httpResp, err := r.client.GetOrgsOrgIdResourcesAccountsAccIdWithResponse(ctx, r.orgId, req.ID)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, got error: %s", err))
-		return
-	}
-
-	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-		return
-	}
-
-	tflog.Info(ctx, string(httpResp.Body))
-
-	data := &ResourceAccountModel{}
-	parseResourceAccountResponse(httpResp.JSON200, data)
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
