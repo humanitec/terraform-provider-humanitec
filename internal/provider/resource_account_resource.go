@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/humanitec/terraform-provider-humanitec/internal/client"
 )
@@ -143,8 +142,6 @@ func (r *ResourceAccountResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	tflog.Info(ctx, "response", map[string]interface{}{"string": string(httpResp.Body)})
-
 	parseResourceAccountResponse(httpResp.JSON200, data)
 
 	// Save data into Terraform state
@@ -212,8 +209,6 @@ func (r *ResourceAccountResource) Update(ctx context.Context, req resource.Updat
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
-
-	tflog.Info(ctx, "response", map[string]interface{}{"string": string(httpResp.Body)})
 
 	parseResourceAccountResponse(httpResp.JSON200, data)
 

@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/humanitec/terraform-provider-humanitec/internal/client"
 )
@@ -36,14 +35,14 @@ type DefinitionResourceDriverInputsModel struct {
 	Secrets types.Map `tfsdk:"secrets"`
 }
 
-// DefinitionResourceDriverInputsModel describes the resource data model.
-// type DefinitionResourceCriteriaModel struct {
-// 	ID      types.String `tfsdk:"id"`
-// 	AppID   types.String `tfsdk:"app_id"`
-// 	EnvID   types.String `tfsdk:"env_id"`
-// 	EnvType types.String `tfsdk:"env_type"`
-// 	ResID   types.String `tfsdk:"res_id"`
-// }
+// DefinitionResourceCriteriaModel describes the resource data model.
+type DefinitionResourceCriteriaModel struct {
+	ID      types.String `tfsdk:"id"`
+	AppID   types.String `tfsdk:"app_id"`
+	EnvID   types.String `tfsdk:"env_id"`
+	EnvType types.String `tfsdk:"env_type"`
+	ResID   types.String `tfsdk:"res_id"`
+}
 
 // DefinitionResourceModel describes the resource data model.
 type DefinitionResourceModel struct {
@@ -53,7 +52,7 @@ type DefinitionResourceModel struct {
 	DriverType    types.String                         `tfsdk:"driver_type"`
 	DriverAccount types.String                         `tfsdk:"driver_account"`
 	DriverInputs  *DefinitionResourceDriverInputsModel `tfsdk:"driver_inputs"`
-	// Criteria      *[]DefinitionResourceCriteriaModel   `tfsdk:"criteria"`
+	Criteria      *[]DefinitionResourceCriteriaModel   `tfsdk:"criteria"`
 }
 
 func (r *ResourceDefinitionResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -121,37 +120,37 @@ func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schem
 					},
 				}),
 			},
-			// "criteria": {
-			// 	MarkdownDescription: "",
-			// 	Optional:            true,
-			// 	Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-			// 		"id": {
-			// 			MarkdownDescription: "",
-			// 			Required:            true,
-			// 			Type:                types.StringType,
-			// 		},
-			// 		"app_id": {
-			// 			MarkdownDescription: "",
-			// 			Optional:            true,
-			// 			Type:                types.StringType,
-			// 		},
-			// 		"env_id": {
-			// 			MarkdownDescription: "",
-			// 			Optional:            true,
-			// 			Type:                types.StringType,
-			// 		},
-			// 		"env_type": {
-			// 			MarkdownDescription: "",
-			// 			Optional:            true,
-			// 			Type:                types.StringType,
-			// 		},
-			// 		"res_id": {
-			// 			MarkdownDescription: "",
-			// 			Optional:            true,
-			// 			Type:                types.StringType,
-			// 		},
-			// 	}),
-			// },
+			"criteria": {
+				MarkdownDescription: "",
+				Optional:            true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						MarkdownDescription: "",
+						Computed:            true,
+						Type:                types.StringType,
+					},
+					"app_id": {
+						MarkdownDescription: "",
+						Optional:            true,
+						Type:                types.StringType,
+					},
+					"env_id": {
+						MarkdownDescription: "",
+						Optional:            true,
+						Type:                types.StringType,
+					},
+					"env_type": {
+						MarkdownDescription: "",
+						Optional:            true,
+						Type:                types.StringType,
+					},
+					"res_id": {
+						MarkdownDescription: "",
+						Optional:            true,
+						Type:                types.StringType,
+					},
+				}),
+			},
 		},
 	}, nil
 }
@@ -225,6 +224,25 @@ func parseMapInput(driver *client.DriverDefinitionResponse, input map[string]int
 	return inputMap, diags
 }
 
+func parseCriteriaInput(criteria *[]client.MatchingCriteriaResponse) *[]DefinitionResourceCriteriaModel {
+	if criteria == nil {
+		return nil
+	}
+
+	data := []DefinitionResourceCriteriaModel{}
+
+	for _, c := range *criteria {
+		data = append(data, DefinitionResourceCriteriaModel{
+			AppID:   parseOptionalString(c.AppId),
+			EnvID:   parseOptionalString(c.EnvId),
+			EnvType: parseOptionalString(c.EnvType),
+			ResID:   parseOptionalString(c.ResId),
+		})
+	}
+
+	return &data
+}
+
 func parseResourceDefinitionResponse(ctx context.Context, driver *client.DriverDefinitionResponse, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -233,6 +251,7 @@ func parseResourceDefinitionResponse(ctx context.Context, driver *client.DriverD
 	data.Type = types.StringValue(res.Type)
 	data.DriverType = parseOptionalString(res.DriverType)
 	data.DriverAccount = parseOptionalString(res.DriverAccount)
+	data.Criteria = parseCriteriaInput(res.Criteria)
 
 	driverInputs := res.DriverInputs
 
@@ -255,21 +274,21 @@ func parseResourceDefinitionResponse(ctx context.Context, driver *client.DriverD
 		}
 	}
 
-	// if res.Criteria != nil {
-	// 	criteria := []DefinitionResourceCriteriaModel{}
-	// 	for _, critera := range *res.Criteria {
-	// 		criteria = append(criteria, DefinitionResourceCriteriaModel{
-	// 			ID:      types.StringValue(critera.Id),
-	// 			AppID:   parseOptionalString(critera.AppId),
-	// 			EnvID:   parseOptionalString(critera.EnvId),
-	// 			EnvType: parseOptionalString(critera.EnvType),
-	// 			ResID:   parseOptionalString(critera.ResId),
-	// 		})
-	// 	}
-	// 	data.Criteria = &criteria
-	// } else {
-	// 	data.Criteria = nil
-	// }
+	if res.Criteria != nil {
+		criteria := []DefinitionResourceCriteriaModel{}
+		for _, c := range *res.Criteria {
+			criteria = append(criteria, DefinitionResourceCriteriaModel{
+				ID:      types.StringValue(c.Id),
+				AppID:   parseOptionalString(c.AppId),
+				EnvID:   parseOptionalString(c.EnvId),
+				EnvType: parseOptionalString(c.EnvType),
+				ResID:   parseOptionalString(c.ResId),
+			})
+		}
+		data.Criteria = &criteria
+	} else {
+		data.Criteria = nil
+	}
 
 	return diags
 }
@@ -284,26 +303,24 @@ func optionalStringFromModel(input types.String) *string {
 	return &v
 }
 
-// func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteriaRequest {
-// 	if data.Criteria == nil {
-// 		return nil
-// 	}
+func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteriaRequest {
+	if data.Criteria == nil {
+		return nil
+	}
 
-// 	criteria := []client.MatchingCriteriaRequest{}
+	criteria := []client.MatchingCriteriaRequest{}
+	for _, c := range *data.Criteria {
+		criteria = append(criteria, client.MatchingCriteriaRequest{
+			Id:      optionalStringFromModel(c.ID),
+			AppId:   optionalStringFromModel(c.AppID),
+			EnvId:   optionalStringFromModel(c.EnvID),
+			EnvType: optionalStringFromModel(c.EnvType),
+			ResId:   optionalStringFromModel(c.ResID),
+		})
+	}
 
-// 	for _, c := range *data.Criteria {
-// 		id := c.ID.ValueString()
-// 		criteria = append(criteria, client.MatchingCriteriaRequest{
-// 			Id:      &id,
-// 			AppId:   optionalStringFromModel(c.AppID),
-// 			EnvId:   optionalStringFromModel(c.EnvID),
-// 			EnvType: optionalStringFromModel(c.EnvType),
-// 			ResId:   optionalStringFromModel(c.ResID),
-// 		})
-// 	}
-
-// 	return &criteria
-// }
+	return &criteria
+}
 
 func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[string]interface{}, field string) (map[string]interface{}, diag.Diagnostics) {
 	var diags diag.Diagnostics
@@ -425,8 +442,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	// criteria := criteriaFromModel(data)
-
+	criteria := criteriaFromModel(data)
 	driverType := data.DriverType.ValueString()
 	driver, diag := r.driverByDriverType(ctx, driverType)
 	resp.Diagnostics.Append(diag...)
@@ -441,7 +457,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	httpResp, err := r.client.PostOrgsOrgIdResourcesDefsWithResponse(ctx, r.orgId, client.PostOrgsOrgIdResourcesDefsJSONRequestBody{
-		// Criteria:      criteria,
+		Criteria:      criteria,
 		DriverAccount: optionalStringFromModel(data.DriverAccount),
 		DriverInputs:  driverInputs,
 		DriverType:    data.DriverType.ValueString(),
@@ -458,8 +474,6 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
-
-	tflog.Info(ctx, "response", map[string]interface{}{"string": string(httpResp.Body)})
 
 	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
@@ -506,11 +520,58 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
+func diffCriteria(previousCriteria *[]DefinitionResourceCriteriaModel, currentCriteria *[]DefinitionResourceCriteriaModel) ([]DefinitionResourceCriteriaModel, []DefinitionResourceCriteriaModel) {
+	addedCriteria := []DefinitionResourceCriteriaModel{}
+	removedCriteria := []DefinitionResourceCriteriaModel{}
+
+	if previousCriteria == nil {
+		if currentCriteria != nil {
+			// All criteria are new
+			addedCriteria = append(addedCriteria, *currentCriteria...)
+		}
+	} else {
+		if currentCriteria == nil {
+			// All criteria are deleted
+			removedCriteria = append(removedCriteria, *previousCriteria...)
+		} else {
+			toKey := func(c *DefinitionResourceCriteriaModel) string {
+				return fmt.Sprintf("%s/%s/%s/%s", c.AppID, c.EnvID, c.EnvType, c.ResID)
+			}
+
+			// Diff old vs. new
+			previousCriteriaMap := map[string]*DefinitionResourceCriteriaModel{}
+			for _, c := range *previousCriteria {
+				c := c
+				previousCriteriaMap[toKey(&c)] = &c
+			}
+			currentCriteriaMap := map[string]*DefinitionResourceCriteriaModel{}
+			for _, c := range *currentCriteria {
+				c := c
+				key := toKey(&c)
+				currentCriteriaMap[key] = &c
+
+				if _, ok := previousCriteriaMap[key]; !ok {
+					addedCriteria = append(addedCriteria, c)
+				}
+			}
+
+			for k, v := range previousCriteriaMap {
+				if _, ok := currentCriteriaMap[k]; !ok {
+					removedCriteria = append(removedCriteria, *v)
+				}
+			}
+		}
+	}
+
+	return addedCriteria, removedCriteria
+}
+
 func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *DefinitionResourceModel
+	var data, state *DefinitionResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -530,7 +591,52 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	httpResp, err := r.client.PatchOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId, data.ID.ValueString(), client.PatchOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
+	defID := data.ID.ValueString()
+	addedCriteria, removedCriteria := diffCriteria(state.Criteria, data.Criteria)
+
+	// Add criteria
+	for _, c := range addedCriteria {
+		httpResp, err := r.client.PostOrgsOrgIdResourcesDefsDefIdCriteriaWithResponse(ctx, r.orgId, defID, client.PostOrgsOrgIdResourcesDefsDefIdCriteriaJSONRequestBody{
+			AppId:   optionalStringFromModel(c.AppID),
+			EnvId:   optionalStringFromModel(c.EnvID),
+			EnvType: optionalStringFromModel(c.EnvType),
+			ResId:   optionalStringFromModel(c.ResID),
+		})
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create resource definition criteria, got error: %s", err))
+			return
+		}
+
+		if httpResp.StatusCode() != 200 {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create resource definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+			return
+		}
+	}
+
+	// Remove criteria
+	force := true
+	for _, c := range removedCriteria {
+		criteriaID := c.ID.ValueString()
+		if criteriaID == "" {
+			// This shouldn't be possible, the patch and state override below will unset never saved values
+			continue
+		}
+
+		httpResp, err := r.client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdWithResponse(ctx, r.orgId, defID, criteriaID, &client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdParams{
+			Force: &force,
+		})
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete resource definition criteria, got error: %s", err))
+			return
+		}
+
+		if httpResp.StatusCode() != 204 {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete resource definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+			return
+		}
+	}
+
+	httpResp, err := r.client.PatchOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId, defID, client.PatchOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
 		DriverAccount: optionalStringFromModel(data.DriverAccount),
 		DriverInputs:  driverInputs,
 		Name:          &name,
@@ -544,8 +650,6 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
-
-	tflog.Info(ctx, "response", map[string]interface{}{"string": string(httpResp.Body)})
 
 	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
