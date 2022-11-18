@@ -1,5 +1,11 @@
 # Terraform Provider Humanitec
 
+---
+
+:construction: __This provider is experimental and currently not recommended for production usage.__ :construction:
+
+---
+
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0

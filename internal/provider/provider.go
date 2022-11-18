@@ -42,6 +42,13 @@ type HumanitecResourceData struct {
 	OrgID  string
 }
 
+const (
+	HUM_CLIENT_ERR   = "Humanitec client error"
+	HUM_API_ERR      = "Humanitec API error"
+	HUM_PROVIDER_ERR = "Provider error"
+	HUM_INPUT_ERR    = "Input error"
+)
+
 func (p *HumanitecProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "humanitec"
 	resp.Version = p.version

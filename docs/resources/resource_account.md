@@ -3,12 +3,12 @@
 page_title: "humanitec_resource_account Resource - terraform-provider-humanitec"
 subcategory: ""
 description: |-
-  
+  Resource Accounts hold credentials that are required to provision and manage resources.
 ---
 
 # humanitec_resource_account (Resource)
 
-
+Resource Accounts hold credentials that are required to provision and manage resources.
 
 ## Example Usage
 
@@ -26,12 +26,9 @@ resource "humanitec_resource_account" "gcp_test" {
 
 ### Required
 
-- `credentials` (String)
-- `name` (String)
-- `type` (String)
-
-### Read-Only
-
-- `id` (String) The ID of this resource.
+- `credentials` (String) Credentials associated with the account.
+- `id` (String) Unique identifier for the account (in scope of the organization it belongs to).
+- `name` (String) Display name.
+- `type` (String) The type of the account
 
 
