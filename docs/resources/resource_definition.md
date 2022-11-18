@@ -77,12 +77,28 @@ resource "humanitec_resource_definition" "gke" {
 
 ### Optional
 
+- `criteria` (Attributes Set) (see [below for nested schema](#nestedatt--criteria))
 - `driver_account` (String)
 - `driver_inputs` (Attributes) (see [below for nested schema](#nestedatt--driver_inputs))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedatt--criteria"></a>
+### Nested Schema for `criteria`
+
+Optional:
+
+- `app_id` (String)
+- `env_id` (String)
+- `env_type` (String)
+- `res_id` (String)
+
+Read-Only:
+
+- `id` (String)
+
 
 <a id="nestedatt--driver_inputs"></a>
 ### Nested Schema for `driver_inputs`
