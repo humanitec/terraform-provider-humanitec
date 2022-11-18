@@ -42,12 +42,11 @@ func (r *ResourceAccountResource) Metadata(ctx context.Context, req resource.Met
 
 func (r *ResourceAccountResource) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "",
+		MarkdownDescription: "Resource Accounts hold credentials that are required to provision and manage resources.",
 
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
-				MarkdownDescription: "",
+				MarkdownDescription: "Unique identifier for the account (in scope of the organization it belongs to).",
 				Required:            true,
 				Type:                types.StringType,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -55,12 +54,12 @@ func (r *ResourceAccountResource) GetSchema(ctx context.Context) (tfsdk.Schema, 
 				},
 			},
 			"name": {
-				MarkdownDescription: "",
+				MarkdownDescription: "Display name.",
 				Required:            true,
 				Type:                types.StringType,
 			},
 			"type": {
-				MarkdownDescription: "",
+				MarkdownDescription: "The type of the account",
 				Required:            true,
 				Type:                types.StringType,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -68,7 +67,7 @@ func (r *ResourceAccountResource) GetSchema(ctx context.Context) (tfsdk.Schema, 
 				},
 			},
 			"credentials": {
-				MarkdownDescription: "",
+				MarkdownDescription: "Credentials associated with the account.",
 				Required:            true,
 				Type:                types.StringType,
 			},
@@ -120,7 +119,7 @@ func (r *ResourceAccountResource) Create(ctx context.Context, req resource.Creat
 
 	var credentials map[string]interface{}
 	if err := json.Unmarshal([]byte(credentialsJSON), &credentials); err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable unmarshal credentials json: %s", err))
+		resp.Diagnostics.AddError(HUM_INPUT_ERR, fmt.Sprintf("Unable unmarshal credentials json: %s", err))
 		return
 	}
 
@@ -133,12 +132,12 @@ func (r *ResourceAccountResource) Create(ctx context.Context, req resource.Creat
 		},
 	})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create definition, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource account, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to create resource account, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 
@@ -160,12 +159,12 @@ func (r *ResourceAccountResource) Read(ctx context.Context, req resource.ReadReq
 
 	httpResp, err := r.client.GetOrgsOrgIdResourcesAccountsAccIdWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource account, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read resource account, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 
@@ -190,7 +189,7 @@ func (r *ResourceAccountResource) Update(ctx context.Context, req resource.Updat
 
 	var credentials map[string]interface{}
 	if err := json.Unmarshal([]byte(credentialsJSON), &credentials); err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable unmarshal credentials json: %s", err))
+		resp.Diagnostics.AddError(HUM_INPUT_ERR, fmt.Sprintf("Unable unmarshal credentials json: %s", err))
 		return
 	}
 
@@ -201,12 +200,12 @@ func (r *ResourceAccountResource) Update(ctx context.Context, req resource.Updat
 		},
 	})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update resource account, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to update resource account, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 

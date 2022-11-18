@@ -61,25 +61,24 @@ func (r *ResourceDefinitionResource) Metadata(ctx context.Context, req resource.
 
 func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "",
+		MarkdownDescription: "Visit the [docs](https://docs.humanitec.com/reference/concepts/resources/definitions) to learn more about resource definitions.",
 
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
 				Required:            true,
-				MarkdownDescription: "",
+				MarkdownDescription: "The Resource Definition ID.",
 				Type:                types.StringType,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					resource.RequiresReplace(),
 				},
 			},
 			"name": {
-				MarkdownDescription: "",
+				MarkdownDescription: "The display name.",
 				Required:            true,
 				Type:                types.StringType,
 			},
 			"type": {
-				MarkdownDescription: "",
+				MarkdownDescription: "The Resource Type.",
 				Required:            true,
 				Type:                types.StringType,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -87,7 +86,7 @@ func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schem
 				},
 			},
 			"driver_type": {
-				MarkdownDescription: "",
+				MarkdownDescription: "The driver to be used to create the resource.",
 				Required:            true,
 				Type:                types.StringType,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -95,23 +94,23 @@ func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schem
 				},
 			},
 			"driver_account": {
-				MarkdownDescription: "",
+				MarkdownDescription: "Security account required by the driver.",
 				Optional:            true,
 				Type:                types.StringType,
 			},
 			"driver_inputs": {
-				MarkdownDescription: "",
+				MarkdownDescription: "Data that should be passed around split by sensitivity.",
 				Optional:            true,
 				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 					"values": {
-						MarkdownDescription: "",
+						MarkdownDescription: "Values section of the data set. Passed around as-is.",
 						Optional:            true,
 						Type: types.MapType{
 							ElemType: types.StringType,
 						},
 					},
 					"secrets": {
-						MarkdownDescription: "",
+						MarkdownDescription: "Secrets section of the data set.",
 						Optional:            true,
 						Type: types.MapType{
 							ElemType: types.StringType,
@@ -121,31 +120,31 @@ func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schem
 				}),
 			},
 			"criteria": {
-				MarkdownDescription: "",
+				MarkdownDescription: "The criteria to use when looking for a Resource Definition during the deployment.",
 				Optional:            true,
 				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
 					"id": {
-						MarkdownDescription: "",
+						MarkdownDescription: "Matching Criteria ID",
 						Computed:            true,
 						Type:                types.StringType,
 					},
 					"app_id": {
-						MarkdownDescription: "",
+						MarkdownDescription: "The ID of the Application that the Resources should belong to.",
 						Optional:            true,
 						Type:                types.StringType,
 					},
 					"env_id": {
-						MarkdownDescription: "",
+						MarkdownDescription: "The ID of the Environment that the Resources should belong to. If env_type is also set, it must match the Type of the Environment for the Criteria to match.",
 						Optional:            true,
 						Type:                types.StringType,
 					},
 					"env_type": {
-						MarkdownDescription: "",
+						MarkdownDescription: "The Type of the Environment that the Resources should belong to. If env_id is also set, it must have an Environment Type that matches this parameter for the Criteria to match.",
 						Optional:            true,
 						Type:                types.StringType,
 					},
 					"res_id": {
-						MarkdownDescription: "",
+						MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a . separated path to the definition in the set, e.g. modules.my-module.externals.my-database.",
 						Optional:            true,
 						Type:                types.StringType,
 					},
@@ -188,11 +187,15 @@ func parseMapInput(driver *client.DriverDefinitionResponse, input map[string]int
 	var diags diag.Diagnostics
 
 	inputSchema := driver.InputsSchema.AdditionalProperties
+	inputSchemaJSON, err := json.MarshalIndent(inputSchema, "", "\t")
+	if err != nil {
+		diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal driver schema: %s", err.Error()))
+	}
 
 	lenDriverInput := len(input)
 	inputProperties, ok := valueAtPath[map[string]interface{}](inputSchema, []string{"properties", "values", "properties"})
 	if lenDriverInput > 0 && !ok {
-		diags.AddError("Client Error", fmt.Sprintf("No value inputs expected in driver input schema: %v", inputSchema))
+		diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("No value inputs expected in driver input schema:\n%s", string(inputSchemaJSON)))
 		return nil, diags
 	}
 
@@ -200,7 +203,7 @@ func parseMapInput(driver *client.DriverDefinitionResponse, input map[string]int
 	for k, v := range input {
 		propertyType, ok := valueAtPath[string](inputProperties, []string{k, "type"})
 		if !ok {
-			diags.AddError("Client Error", fmt.Sprintf("Property \"%s\" not found in schema: %v", k, inputSchema))
+			diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Property \"%s\" not found in driver input schema:\n%s", k, string(inputSchemaJSON)))
 			continue
 		}
 
@@ -212,12 +215,12 @@ func parseMapInput(driver *client.DriverDefinitionResponse, input map[string]int
 		case "object":
 			obj, err := json.Marshal(v)
 			if err != nil {
-				diags.AddError("Client Error", fmt.Sprintf("Failed to marshal property \"%s\": %s", k, err.Error()))
+				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to marshal property \"%s\": %s", k, err.Error()))
 				continue
 			}
 			inputMap[k] = string(obj)
 		default:
-			diags.AddError("Client Error", fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\": %v", propertyType, k, inputSchema))
+			diags.AddError(HUM_PROVIDER_ERR, fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\" in driver input schema:\n%s", propertyType, k, string(inputSchemaJSON)))
 			continue
 		}
 	}
@@ -325,6 +328,11 @@ func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteria
 func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[string]interface{}, field string) (map[string]interface{}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
+	inputSchemaJSON, err := json.MarshalIndent(inputSchema, "", "\t")
+	if err != nil {
+		diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal driver schema: %s", err.Error()))
+	}
+
 	var driverInput map[string]string
 	diags.Append(data.ElementsAs(ctx, &driverInput, false)...)
 
@@ -335,7 +343,7 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 	lenDriverInput := len(driverInput)
 	inputProperties, ok := valueAtPath[map[string]interface{}](inputSchema, []string{"properties", field, "properties"})
 	if lenDriverInput > 0 && !ok {
-		diags.AddError("Client Error", fmt.Sprintf("No %s inputs expected in driver input schema: %v", field, inputSchema))
+		diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("No %s inputs expected in driver input schema:\n%s", field, string(inputSchemaJSON)))
 		return nil, diags
 	}
 
@@ -343,7 +351,7 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 	for k, v := range driverInput {
 		propertyType, ok := valueAtPath[string](inputProperties, []string{k, "type"})
 		if !ok {
-			diags.AddError("Client Error", fmt.Sprintf("Property \"%s\" not found in schema: %v", k, inputSchema))
+			diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Property \"%s\" not found in driver input schema:\n%s", k, string(inputSchemaJSON)))
 			continue
 		}
 
@@ -353,19 +361,19 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 		case "integer":
 			intVar, err := strconv.Atoi(v)
 			if err != nil {
-				diags.AddError("Client Error", fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to int: %s", k, v, err.Error()))
+				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to int: %s", k, v, err.Error()))
 				continue
 			}
 			inputMap[k] = intVar
 		case "object":
 			var obj map[string]interface{}
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				diags.AddError("Client Error", fmt.Sprintf("Failed to unmarshal property \"%s\": %s", k, err.Error()))
+				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal property \"%s\": %s", k, err.Error()))
 				continue
 			}
 			inputMap[k] = obj
 		default:
-			diags.AddError("Client Error", fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\": %v", propertyType, k, inputSchema))
+			diags.AddError(HUM_PROVIDER_ERR, fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\" driver input schema:\n%s", propertyType, k, string(inputSchemaJSON)))
 			continue
 		}
 
@@ -403,17 +411,17 @@ func (r *ResourceDefinitionResource) driverByDriverType(ctx context.Context, dri
 
 	httpResp, err := r.client.GetOrgsOrgIdResourcesDriversWithResponse(ctx, r.orgId)
 	if err != nil {
-		diags.AddError("Client Error", fmt.Sprintf("Unable to get drivers, got error: %s", err))
+		diags.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to get resource drivers, got error: %s", err))
 		return nil, diags
 	}
 
 	if httpResp.StatusCode() != 200 {
-		diags.AddError("Client Error", fmt.Sprintf("Unable to get drivers, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		diags.AddError(HUM_API_ERR, fmt.Sprintf("Unable to get resource drivers, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return nil, diags
 	}
 
 	if httpResp.JSON200 == nil {
-		diags.AddError("Client Error", fmt.Sprintf("Unable to get drivers, missing body, body: %s", httpResp.Body))
+		diags.AddError(HUM_API_ERR, fmt.Sprintf("Unable to get resource drivers, missing body, body: %s", httpResp.Body))
 		return nil, diags
 	}
 
@@ -425,7 +433,7 @@ func (r *ResourceDefinitionResource) driverByDriverType(ctx context.Context, dri
 
 	driver, ok := driversByType[driverType]
 	if !ok {
-		diags.AddError("Client Error", fmt.Sprintf("Not driver found for type: %s", driverType))
+		diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Not resource driver found for type: %s", driverType))
 		return nil, diags
 	}
 
@@ -466,12 +474,12 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		Type:          data.Type.ValueString(),
 	})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create definition, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource definition, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to create resource definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 
@@ -496,12 +504,12 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 
 	httpResp, err := r.client.GetOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource definition, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read resource definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 
@@ -603,12 +611,12 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 			ResId:   optionalStringFromModel(c.ResID),
 		})
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create resource definition criteria, got error: %s", err))
+			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource definition criteria, got error: %s", err))
 			return
 		}
 
 		if httpResp.StatusCode() != 200 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create resource definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+			resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to create resource definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 			return
 		}
 	}
@@ -626,12 +634,12 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 			Force: &force,
 		})
 		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete resource definition criteria, got error: %s", err))
+			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete resource definition criteria, got error: %s", err))
 			return
 		}
 
 		if httpResp.StatusCode() != 204 {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete resource definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+			resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to delete resource definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 			return
 		}
 	}
@@ -642,12 +650,12 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		Name:          &name,
 	})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read definition, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 
@@ -675,12 +683,12 @@ func (r *ResourceDefinitionResource) Delete(ctx context.Context, req resource.De
 		Force: &force,
 	})
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete definition, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete definition, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() != 204 {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to delete definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 }
