@@ -31,8 +31,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		// TODO: Update this string with the published name of your provider.
-		Address: "registry.terraform.io/humanitec/terraform-provider-humanitec",
+		Address: "registry.terraform.io/humanitec/humanitec",
 		Debug:   debug,
 	}
 

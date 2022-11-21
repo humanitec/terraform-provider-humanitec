@@ -3,12 +3,12 @@
 page_title: "humanitec Provider"
 subcategory: ""
 description: |-
-  
+  Experimental Terraform Provider for Humanitec https://humanitec.com/.
 ---
 
 # humanitec Provider
 
-
+Experimental Terraform Provider for [Humanitec](https://humanitec.com/).
 
 ## Example Usage
 

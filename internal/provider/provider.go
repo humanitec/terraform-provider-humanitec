@@ -56,6 +56,8 @@ func (p *HumanitecProvider) Metadata(ctx context.Context, req provider.MetadataR
 
 func (p *HumanitecProvider) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
+		MarkdownDescription: "Experimental Terraform Provider for [Humanitec](https://humanitec.com/).",
+
 		Attributes: map[string]tfsdk.Attribute{
 			"host": {
 				MarkdownDescription: "Humanitec API host (also reads HUMANITEC_HOST)",
