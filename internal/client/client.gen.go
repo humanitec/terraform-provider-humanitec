@@ -417,27 +417,29 @@ type DeltaMetadataResponse struct {
 // **Basic Structure**
 //
 // ```
-//  {
-//    "id": <ID of the Deployment Delta.>,
-//    "metadata": {
-//      <Properties such as who created the Delta, which Environment it is associated to and a Human-friendly name>
-//    }
-//    "modules" : {
-//      "add" : {
-//        <ID of Module to add to the Deployment Set> : {
-//          <An entire Modules object>
-//        }
-//      },
-//      "remove": [
-//        <An array of Module IDs that should be removed from the Deployment Set>
-//      ],
-//     "update": {
-//        <ID of Module already in the Set to be updated> : [
-//          <An array of JSON Patch (Search Results (RFC 6902) objects scoped to the module>
-//        ]
-//      }
-//    }
-//  }
+//
+//	{
+//	  "id": <ID of the Deployment Delta.>,
+//	  "metadata": {
+//	    <Properties such as who created the Delta, which Environment it is associated to and a Human-friendly name>
+//	  }
+//	  "modules" : {
+//	    "add" : {
+//	      <ID of Module to add to the Deployment Set> : {
+//	        <An entire Modules object>
+//	      }
+//	    },
+//	    "remove": [
+//	      <An array of Module IDs that should be removed from the Deployment Set>
+//	    ],
+//	   "update": {
+//	      <ID of Module already in the Set to be updated> : [
+//	        <An array of JSON Patch (Search Results (RFC 6902) objects scoped to the module>
+//	      ]
+//	    }
+//	  }
+//	}
+//
 // ```
 type DeltaRequest struct {
 	Metadata *DeltaMetadataRequest `json:"metadata,omitempty"`
@@ -454,27 +456,29 @@ type DeltaRequest struct {
 // **Basic Structure**
 //
 // ```
-//  {
-//    "id": <ID of the Deployment Delta.>,
-//    "metadata": {
-//      <Properties such as who created the Delta, which Environment it is associated to and a Human-friendly name>
-//    }
-//    "modules" : {
-//      "add" : {
-//        <ID of Module to add to the Deployment Set> : {
-//          <An entire Modules object>
-//        }
-//      },
-//      "remove": [
-//        <An array of Module IDs that should be removed from the Deployment Set>
-//      ],
-//     "update": {
-//        <ID of Module already in the Set to be updated> : [
-//          <An array of JSON Patch (Search Results (RFC 6902) objects scoped to the module>
-//        ]
-//      }
-//    }
-//  }
+//
+//	{
+//	  "id": <ID of the Deployment Delta.>,
+//	  "metadata": {
+//	    <Properties such as who created the Delta, which Environment it is associated to and a Human-friendly name>
+//	  }
+//	  "modules" : {
+//	    "add" : {
+//	      <ID of Module to add to the Deployment Set> : {
+//	        <An entire Modules object>
+//	      }
+//	    },
+//	    "remove": [
+//	      <An array of Module IDs that should be removed from the Deployment Set>
+//	    ],
+//	   "update": {
+//	      <ID of Module already in the Set to be updated> : [
+//	        <An array of JSON Patch (Search Results (RFC 6902) objects scoped to the module>
+//	      ]
+//	    }
+//	  }
+//	}
+//
 // ```
 type DeltaResponse struct {
 	// A unique ID for the Delta
@@ -646,14 +650,6 @@ type EnvironmentResponse struct {
 	Type string `json:"type"`
 }
 
-// EnvironmentRuntimeInfo
-type EnvironmentRuntimeInfoResponse struct {
-	Error  *string `json:"error,omitempty"`
-	Id     string  `json:"id"`
-	Paused bool    `json:"paused"`
-	Status *string `json:"status,omitempty"`
-}
-
 // Environment Types are a way of grouping and managing Environments. Every Environment has exactly 1 Environment Type.
 //
 // Environment Types can be used with External Resources to manage where resources such as databases are provisioned or even which cluster to deploy to.
@@ -785,12 +781,12 @@ type ImageResponse struct {
 
 // JSONFieldRequest defines model for JSONFieldRequest.
 type JSONFieldRequest struct {
-	AdditionalProperties map[string]interface{} `json:"-"`
+	AdditionalProperties map[string]map[string]interface{} `json:"-"`
 }
 
 // JSONFieldResponse defines model for JSONFieldResponse.
 type JSONFieldResponse struct {
-	AdditionalProperties map[string]interface{} `json:"-"`
+	AdditionalProperties map[string]map[string]interface{} `json:"-"`
 }
 
 // JSONPatchResponse defines model for JSONPatchResponse.
@@ -1191,25 +1187,27 @@ type RuntimeInfoResponse_Modules struct {
 // **Basic Structure**
 //
 // ```
-//  {
-//    "id": <ID of the Deployment Set>,
-//    "modules" : {
-//      <ID of Module> : {
-//        "profile": <Defines how the optional "spec" property is interpreted>
-//        "spec": {
-//          <Properties that depend on the "profile" property.>
-//        }
-//        "externals": {
-//          <External Resource Name> : {
-//            "type": <Resource Type>,
-//            "params": {
-//              <Properties which parametrize the resource depending on the Resource Type.>
-//            }
-//          }
-//        }
-//      }
-//    }
-//  }
+//
+//	{
+//	  "id": <ID of the Deployment Set>,
+//	  "modules" : {
+//	    <ID of Module> : {
+//	      "profile": <Defines how the optional "spec" property is interpreted>
+//	      "spec": {
+//	        <Properties that depend on the "profile" property.>
+//	      }
+//	      "externals": {
+//	        <External Resource Name> : {
+//	          "type": <Resource Type>,
+//	          "params": {
+//	            <Properties which parametrize the resource depending on the Resource Type.>
+//	          }
+//	        }
+//	      }
+//	    }
+//	  }
+//	}
+//
 // ```
 //
 // For details about how the Humanitec provided profiles work, see (Deployment Set Profiles)[].
@@ -1283,10 +1281,10 @@ type StaticDefinitionResponse struct {
 //
 // * `remove` can have have its scope of application applied in its `value`. e.g. `{"scope":"delta"}
 type UpdateActionRequest struct {
-	From  *string      `json:"from,omitempty"`
-	Op    *string      `json:"op,omitempty"`
-	Path  *string      `json:"path,omitempty"`
-	Value *interface{} `json:"value,omitempty"`
+	From  *string                 `json:"from,omitempty"`
+	Op    *string                 `json:"op,omitempty"`
+	Path  *string                 `json:"path,omitempty"`
+	Value *map[string]interface{} `json:"value,omitempty"`
 }
 
 // A representation of the main object defined in JSON Patch specified in RFC 6902 from the IETF. The main differences are:
@@ -1295,10 +1293,10 @@ type UpdateActionRequest struct {
 //
 // * `remove` can have have its scope of application applied in its `value`. e.g. `{"scope":"delta"}
 type UpdateActionResponse struct {
-	From  *string      `json:"from,omitempty"`
-	Op    string       `json:"op"`
-	Path  string       `json:"path"`
-	Value *interface{} `json:"value,omitempty"`
+	From  *string                 `json:"from,omitempty"`
+	Op    string                  `json:"op"`
+	Path  string                  `json:"path"`
+	Value *map[string]interface{} `json:"value,omitempty"`
 }
 
 // UpdateArtefactVersionPayload contains the `archived` field that should be set in the Artefact Version to update.
@@ -1765,9 +1763,6 @@ type PostOrgsOrgIdAppsAppIdEnvsEnvIdRulesJSONBody AutomationRuleRequest
 // PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleIdJSONBody defines parameters for PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleId.
 type PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleIdJSONBody AutomationRuleRequest
 
-// PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONBody defines parameters for PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused.
-type PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONBody bool
-
 // PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasJSONBody defines parameters for PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicas.
 type PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasJSONBody struct {
 	AdditionalProperties map[string]int `json:"-"`
@@ -1794,13 +1789,6 @@ type PostOrgsOrgIdAppsAppIdEnvsEnvIdValuesJSONBody ValueRequest
 
 // PutOrgsOrgIdAppsAppIdEnvsEnvIdValuesKeyJSONBody defines parameters for PutOrgsOrgIdAppsAppIdEnvsEnvIdValuesKey.
 type PutOrgsOrgIdAppsAppIdEnvsEnvIdValuesKeyJSONBody ValueRequest
-
-// GetOrgsOrgIdAppsAppIdRuntimeParams defines parameters for GetOrgsOrgIdAppsAppIdRuntime.
-type GetOrgsOrgIdAppsAppIdRuntimeParams struct {
-	// It is required and can be used multiple time (till a maximum of 5) and it filters the environments by ID.
-	//
-	Id *string `json:"id,omitempty"`
-}
 
 // PostOrgsOrgIdAppsAppIdSetsSetIdJSONBody defines parameters for PostOrgsOrgIdAppsAppIdSetsSetId.
 type PostOrgsOrgIdAppsAppIdSetsSetIdJSONBody DeltaRequest
@@ -2019,9 +2007,6 @@ type PostOrgsOrgIdAppsAppIdEnvsEnvIdRulesJSONRequestBody PostOrgsOrgIdAppsAppIdE
 
 // PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleIdJSONRequestBody defines body for PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleId for application/json ContentType.
 type PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleIdJSONRequestBody PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleIdJSONBody
-
-// PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONRequestBody defines body for PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused for application/json ContentType.
-type PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONRequestBody PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONBody
 
 // PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasJSONRequestBody defines body for PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicas for application/json ContentType.
 type PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasJSONRequestBody PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasJSONBody
@@ -2760,7 +2745,7 @@ func (a HumanitecErrorResponse_Details) MarshalJSON() ([]byte, error) {
 
 // Getter for additional properties for JSONFieldRequest. Returns the specified
 // element and whether it was found
-func (a JSONFieldRequest) Get(fieldName string) (value interface{}, found bool) {
+func (a JSONFieldRequest) Get(fieldName string) (value map[string]interface{}, found bool) {
 	if a.AdditionalProperties != nil {
 		value, found = a.AdditionalProperties[fieldName]
 	}
@@ -2768,9 +2753,9 @@ func (a JSONFieldRequest) Get(fieldName string) (value interface{}, found bool) 
 }
 
 // Setter for additional properties for JSONFieldRequest
-func (a *JSONFieldRequest) Set(fieldName string, value interface{}) {
+func (a *JSONFieldRequest) Set(fieldName string, value map[string]interface{}) {
 	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
+		a.AdditionalProperties = make(map[string]map[string]interface{})
 	}
 	a.AdditionalProperties[fieldName] = value
 }
@@ -2784,9 +2769,9 @@ func (a *JSONFieldRequest) UnmarshalJSON(b []byte) error {
 	}
 
 	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
+		a.AdditionalProperties = make(map[string]map[string]interface{})
 		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
+			var fieldVal map[string]interface{}
 			err := json.Unmarshal(fieldBuf, &fieldVal)
 			if err != nil {
 				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
@@ -2813,7 +2798,7 @@ func (a JSONFieldRequest) MarshalJSON() ([]byte, error) {
 
 // Getter for additional properties for JSONFieldResponse. Returns the specified
 // element and whether it was found
-func (a JSONFieldResponse) Get(fieldName string) (value interface{}, found bool) {
+func (a JSONFieldResponse) Get(fieldName string) (value map[string]interface{}, found bool) {
 	if a.AdditionalProperties != nil {
 		value, found = a.AdditionalProperties[fieldName]
 	}
@@ -2821,9 +2806,9 @@ func (a JSONFieldResponse) Get(fieldName string) (value interface{}, found bool)
 }
 
 // Setter for additional properties for JSONFieldResponse
-func (a *JSONFieldResponse) Set(fieldName string, value interface{}) {
+func (a *JSONFieldResponse) Set(fieldName string, value map[string]interface{}) {
 	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
+		a.AdditionalProperties = make(map[string]map[string]interface{})
 	}
 	a.AdditionalProperties[fieldName] = value
 }
@@ -2837,9 +2822,9 @@ func (a *JSONFieldResponse) UnmarshalJSON(b []byte) error {
 	}
 
 	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
+		a.AdditionalProperties = make(map[string]map[string]interface{})
 		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
+			var fieldVal map[string]interface{}
 			err := json.Unmarshal(fieldBuf, &fieldVal)
 			if err != nil {
 				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
@@ -4437,9 +4422,6 @@ type ClientInterface interface {
 	// GetOrgsOrgIdAppsAppIdEnvsEnvIdResources request
 	GetOrgsOrgIdAppsAppIdEnvsEnvIdResources(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResId request
-	DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResId(ctx context.Context, orgId string, appId string, envId string, pType string, resId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetOrgsOrgIdAppsAppIdEnvsEnvIdRules request
 	GetOrgsOrgIdAppsAppIdEnvsEnvIdRules(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -4461,11 +4443,6 @@ type ClientInterface interface {
 
 	// GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntime request
 	GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntime(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused request with any body
-	PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithBody(ctx context.Context, orgId string, appId string, envId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused(ctx context.Context, orgId string, appId string, envId string, body PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicas request with any body
 	PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasWithBody(ctx context.Context, orgId string, appId string, envId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4514,9 +4491,6 @@ type ClientInterface interface {
 
 	// DeleteOrgsOrgIdAppsAppIdJobs request
 	DeleteOrgsOrgIdAppsAppIdJobs(ctx context.Context, orgId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetOrgsOrgIdAppsAppIdRuntime request
-	GetOrgsOrgIdAppsAppIdRuntime(ctx context.Context, orgId string, appId string, params *GetOrgsOrgIdAppsAppIdRuntimeParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetOrgsOrgIdAppsAppIdSetsSetId request
 	GetOrgsOrgIdAppsAppIdSetsSetId(ctx context.Context, orgId string, appId string, setId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5212,18 +5186,6 @@ func (c *Client) GetOrgsOrgIdAppsAppIdEnvsEnvIdResources(ctx context.Context, or
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResId(ctx context.Context, orgId string, appId string, envId string, pType string, resId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdRequest(c.Server, orgId, appId, envId, pType, resId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) GetOrgsOrgIdAppsAppIdEnvsEnvIdRules(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetOrgsOrgIdAppsAppIdEnvsEnvIdRulesRequest(c.Server, orgId, appId, envId)
 	if err != nil {
@@ -5310,30 +5272,6 @@ func (c *Client) PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleId(ctx context.Context, 
 
 func (c *Client) GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntime(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeRequest(c.Server, orgId, appId, envId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithBody(ctx context.Context, orgId string, appId string, envId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedRequestWithBody(c.Server, orgId, appId, envId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused(ctx context.Context, orgId string, appId string, envId string, body PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedRequest(c.Server, orgId, appId, envId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5550,18 +5488,6 @@ func (c *Client) PutOrgsOrgIdAppsAppIdEnvsEnvIdValuesKey(ctx context.Context, or
 
 func (c *Client) DeleteOrgsOrgIdAppsAppIdJobs(ctx context.Context, orgId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteOrgsOrgIdAppsAppIdJobsRequest(c.Server, orgId, appId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetOrgsOrgIdAppsAppIdRuntime(ctx context.Context, orgId string, appId string, params *GetOrgsOrgIdAppsAppIdRuntimeParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetOrgsOrgIdAppsAppIdRuntimeRequest(c.Server, orgId, appId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -8005,68 +7931,6 @@ func NewGetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesRequest(server string, orgId stri
 	return req, nil
 }
 
-// NewDeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdRequest generates requests for DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResId
-func NewDeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdRequest(server string, orgId string, appId string, envId string, pType string, resId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "orgId", runtime.ParamLocationPath, orgId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "appId", runtime.ParamLocationPath, appId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam2 string
-
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "envId", runtime.ParamLocationPath, envId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam3 string
-
-	pathParam3, err = runtime.StyleParamWithLocation("simple", false, "type", runtime.ParamLocationPath, pType)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam4 string
-
-	pathParam4, err = runtime.StyleParamWithLocation("simple", false, "resId", runtime.ParamLocationPath, resId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/orgs/%s/apps/%s/envs/%s/resources/%s/%s", pathParam0, pathParam1, pathParam2, pathParam3, pathParam4)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewGetOrgsOrgIdAppsAppIdEnvsEnvIdRulesRequest generates requests for GetOrgsOrgIdAppsAppIdEnvsEnvIdRules
 func NewGetOrgsOrgIdAppsAppIdEnvsEnvIdRulesRequest(server string, orgId string, appId string, envId string) (*http.Request, error) {
 	var err error
@@ -8398,67 +8262,6 @@ func NewGetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeRequest(server string, orgId string
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewPutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedRequest calls the generic PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused builder with application/json body
-func NewPutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedRequest(server string, orgId string, appId string, envId string, body PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedRequestWithBody(server, orgId, appId, envId, "application/json", bodyReader)
-}
-
-// NewPutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedRequestWithBody generates requests for PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused with any type of body
-func NewPutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedRequestWithBody(server string, orgId string, appId string, envId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "orgId", runtime.ParamLocationPath, orgId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "appId", runtime.ParamLocationPath, appId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam2 string
-
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "envId", runtime.ParamLocationPath, envId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/orgs/%s/apps/%s/envs/%s/runtime/paused", pathParam0, pathParam1, pathParam2)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -9179,67 +8982,6 @@ func NewDeleteOrgsOrgIdAppsAppIdJobsRequest(server string, orgId string, appId s
 	}
 
 	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetOrgsOrgIdAppsAppIdRuntimeRequest generates requests for GetOrgsOrgIdAppsAppIdRuntime
-func NewGetOrgsOrgIdAppsAppIdRuntimeRequest(server string, orgId string, appId string, params *GetOrgsOrgIdAppsAppIdRuntimeParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "orgId", runtime.ParamLocationPath, orgId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "appId", runtime.ParamLocationPath, appId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/orgs/%s/apps/%s/runtime", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	queryValues := queryURL.Query()
-
-	if params.Id != nil {
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "id", runtime.ParamLocationQuery, *params.Id); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-	}
-
-	queryURL.RawQuery = queryValues.Encode()
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13158,9 +12900,6 @@ type ClientWithResponsesInterface interface {
 	// GetOrgsOrgIdAppsAppIdEnvsEnvIdResources request
 	GetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesWithResponse(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*GetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesResponse, error)
 
-	// DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResId request
-	DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdWithResponse(ctx context.Context, orgId string, appId string, envId string, pType string, resId string, reqEditors ...RequestEditorFn) (*DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse, error)
-
 	// GetOrgsOrgIdAppsAppIdEnvsEnvIdRules request
 	GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesWithResponse(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesResponse, error)
 
@@ -13182,11 +12921,6 @@ type ClientWithResponsesInterface interface {
 
 	// GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntime request
 	GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeWithResponse(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeResponse, error)
-
-	// PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused request with any body
-	PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithBodyWithResponse(ctx context.Context, orgId string, appId string, envId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse, error)
-
-	PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithResponse(ctx context.Context, orgId string, appId string, envId string, body PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONRequestBody, reqEditors ...RequestEditorFn) (*PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse, error)
 
 	// PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicas request with any body
 	PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasWithBodyWithResponse(ctx context.Context, orgId string, appId string, envId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasResponse, error)
@@ -13235,9 +12969,6 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteOrgsOrgIdAppsAppIdJobs request
 	DeleteOrgsOrgIdAppsAppIdJobsWithResponse(ctx context.Context, orgId string, appId string, reqEditors ...RequestEditorFn) (*DeleteOrgsOrgIdAppsAppIdJobsResponse, error)
-
-	// GetOrgsOrgIdAppsAppIdRuntime request
-	GetOrgsOrgIdAppsAppIdRuntimeWithResponse(ctx context.Context, orgId string, appId string, params *GetOrgsOrgIdAppsAppIdRuntimeParams, reqEditors ...RequestEditorFn) (*GetOrgsOrgIdAppsAppIdRuntimeResponse, error)
 
 	// GetOrgsOrgIdAppsAppIdSetsSetId request
 	GetOrgsOrgIdAppsAppIdSetsSetIdWithResponse(ctx context.Context, orgId string, appId string, setId string, reqEditors ...RequestEditorFn) (*GetOrgsOrgIdAppsAppIdSetsSetIdResponse, error)
@@ -14070,27 +13801,6 @@ func (r GetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesResponse) StatusCode() int {
 	return 0
 }
 
-type DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -14218,27 +13928,6 @@ func (r GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -14507,28 +14196,6 @@ func (r DeleteOrgsOrgIdAppsAppIdJobsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r DeleteOrgsOrgIdAppsAppIdJobsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetOrgsOrgIdAppsAppIdRuntimeResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]EnvironmentRuntimeInfoResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetOrgsOrgIdAppsAppIdRuntimeResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetOrgsOrgIdAppsAppIdRuntimeResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -16637,15 +16304,6 @@ func (c *ClientWithResponses) GetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesWithRespons
 	return ParseGetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesResponse(rsp)
 }
 
-// DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdWithResponse request returning *DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse
-func (c *ClientWithResponses) DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdWithResponse(ctx context.Context, orgId string, appId string, envId string, pType string, resId string, reqEditors ...RequestEditorFn) (*DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse, error) {
-	rsp, err := c.DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResId(ctx, orgId, appId, envId, pType, resId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse(rsp)
-}
-
 // GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesWithResponse request returning *GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesResponse
 func (c *ClientWithResponses) GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesWithResponse(ctx context.Context, orgId string, appId string, envId string, reqEditors ...RequestEditorFn) (*GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesResponse, error) {
 	rsp, err := c.GetOrgsOrgIdAppsAppIdEnvsEnvIdRules(ctx, orgId, appId, envId, reqEditors...)
@@ -16714,23 +16372,6 @@ func (c *ClientWithResponses) GetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeWithResponse(
 		return nil, err
 	}
 	return ParseGetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeResponse(rsp)
-}
-
-// PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithBodyWithResponse request with arbitrary body returning *PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse
-func (c *ClientWithResponses) PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithBodyWithResponse(ctx context.Context, orgId string, appId string, envId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse, error) {
-	rsp, err := c.PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithBody(ctx, orgId, appId, envId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse(rsp)
-}
-
-func (c *ClientWithResponses) PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithResponse(ctx context.Context, orgId string, appId string, envId string, body PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedJSONRequestBody, reqEditors ...RequestEditorFn) (*PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse, error) {
-	rsp, err := c.PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePaused(ctx, orgId, appId, envId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse(rsp)
 }
 
 // PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasWithBodyWithResponse request with arbitrary body returning *PatchOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeReplicasResponse
@@ -16887,15 +16528,6 @@ func (c *ClientWithResponses) DeleteOrgsOrgIdAppsAppIdJobsWithResponse(ctx conte
 		return nil, err
 	}
 	return ParseDeleteOrgsOrgIdAppsAppIdJobsResponse(rsp)
-}
-
-// GetOrgsOrgIdAppsAppIdRuntimeWithResponse request returning *GetOrgsOrgIdAppsAppIdRuntimeResponse
-func (c *ClientWithResponses) GetOrgsOrgIdAppsAppIdRuntimeWithResponse(ctx context.Context, orgId string, appId string, params *GetOrgsOrgIdAppsAppIdRuntimeParams, reqEditors ...RequestEditorFn) (*GetOrgsOrgIdAppsAppIdRuntimeResponse, error) {
-	rsp, err := c.GetOrgsOrgIdAppsAppIdRuntime(ctx, orgId, appId, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetOrgsOrgIdAppsAppIdRuntimeResponse(rsp)
 }
 
 // GetOrgsOrgIdAppsAppIdSetsSetIdWithResponse request returning *GetOrgsOrgIdAppsAppIdSetsSetIdResponse
@@ -18550,22 +18182,6 @@ func ParseGetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesResponse(rsp *http.Response) (*
 	return response, nil
 }
 
-// ParseDeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse parses an HTTP response from a DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdWithResponse call
-func ParseDeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse(rsp *http.Response) (*DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
 // ParseGetOrgsOrgIdAppsAppIdEnvsEnvIdRulesResponse parses an HTTP response from a GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesWithResponse call
 func ParseGetOrgsOrgIdAppsAppIdEnvsEnvIdRulesResponse(rsp *http.Response) (*GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -18721,22 +18337,6 @@ func ParseGetOrgsOrgIdAppsAppIdEnvsEnvIdRuntimeResponse(rsp *http.Response) (*Ge
 		}
 		response.JSON200 = &dest
 
-	}
-
-	return response, nil
-}
-
-// ParsePutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse parses an HTTP response from a PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedWithResponse call
-func ParsePutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse(rsp *http.Response) (*PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PutOrgsOrgIdAppsAppIdEnvsEnvIdRuntimePausedResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -19065,32 +18665,6 @@ func ParseDeleteOrgsOrgIdAppsAppIdJobsResponse(rsp *http.Response) (*DeleteOrgsO
 	response := &DeleteOrgsOrgIdAppsAppIdJobsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseGetOrgsOrgIdAppsAppIdRuntimeResponse parses an HTTP response from a GetOrgsOrgIdAppsAppIdRuntimeWithResponse call
-func ParseGetOrgsOrgIdAppsAppIdRuntimeResponse(rsp *http.Response) (*GetOrgsOrgIdAppsAppIdRuntimeResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetOrgsOrgIdAppsAppIdRuntimeResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []EnvironmentRuntimeInfoResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
 	}
 
 	return response, nil
