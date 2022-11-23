@@ -29,6 +29,12 @@ resource "humanitec_resource_definition" "postgres" {
       "password" = "test"
     }
   }
+
+  criteria = [
+    {
+      app_id = "test-app"
+    }
+  ]
 }
 
 resource "humanitec_resource_definition" "gke" {
@@ -48,4 +54,15 @@ resource "humanitec_resource_definition" "gke" {
       "credentials" = "{}"
     }
   }
+
+  criteria = [
+    {
+      app_id   = "test-app"
+      env_type = "development"
+    },
+    {
+      app_id   = "test-app"
+      env_type = "staging"
+    }
+  ]
 }

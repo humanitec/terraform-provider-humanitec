@@ -60,17 +60,17 @@ func (p *HumanitecProvider) GetSchema(ctx context.Context) (tfsdk.Schema, diag.D
 
 		Attributes: map[string]tfsdk.Attribute{
 			"host": {
-				MarkdownDescription: "Humanitec API host (also reads HUMANITEC_HOST)",
+				MarkdownDescription: "Humanitec API host (or using the `HUMANITEC_HOST` environment variable)",
 				Type:                types.StringType,
 				Optional:            true,
 			},
 			"org_id": {
-				MarkdownDescription: "Humanitec Organization ID (also reads HUMANITEC_ORG_ID)",
+				MarkdownDescription: "Humanitec Organization ID (or using the `HUMANITEC_ORG_ID` environment variable)",
 				Type:                types.StringType,
 				Optional:            true,
 			},
 			"token": {
-				MarkdownDescription: "Humanitec Token (also reads HUMANITEC_TOKEN)",
+				MarkdownDescription: "Humanitec Token (or using the `HUMANITEC_TOKEN` environment variable)",
 				Type:                types.StringType,
 				Optional:            true,
 				Sensitive:           true,
