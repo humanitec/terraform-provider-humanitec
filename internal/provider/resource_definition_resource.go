@@ -189,10 +189,9 @@ func parseOptionalString(input *string) types.String {
 	return types.StringValue(*input)
 }
 
-func parseMapInput(driver *client.DriverDefinitionResponse, input map[string]interface{}) (map[string]string, diag.Diagnostics) {
+func parseMapInput(inputSchema map[string]interface{}, input map[string]interface{}) (map[string]string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	inputSchema := driver.InputsSchema.AdditionalProperties
 	inputSchemaJSON, err := json.MarshalIndent(inputSchema, "", "\t")
 	if err != nil {
 		diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal driver schema: %s", err.Error()))
@@ -252,7 +251,7 @@ func parseCriteriaInput(criteria *[]client.MatchingCriteriaResponse) *[]Definiti
 	return &data
 }
 
-func parseResourceDefinitionResponse(ctx context.Context, driver *client.DriverDefinitionResponse, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
+func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[string]interface{}, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	data.ID = types.StringValue(res.Id)
@@ -274,7 +273,7 @@ func parseResourceDefinitionResponse(ctx context.Context, driver *client.DriverD
 		if driverInputs.Values == nil {
 			data.DriverInputs.Values = types.MapNull(types.StringType)
 		} else {
-			valuesMap, diag := parseMapInput(driver, driverInputs.Values.AdditionalProperties)
+			valuesMap, diag := parseMapInput(driverInputSchema, driverInputs.Values.AdditionalProperties)
 			diags.Append(diag...)
 
 			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
@@ -388,12 +387,12 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 	return inputMap, diags
 }
 
-func driverInputsFromModel(ctx context.Context, driver *client.DriverDefinitionResponse, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
+func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	driverInputs := &client.ValuesSecretsRequest{}
 
-	secrets, diags := driverInputToMap(ctx, data.DriverInputs.Secrets, driver.InputsSchema.AdditionalProperties, "secrets")
+	secrets, diags := driverInputToMap(ctx, data.DriverInputs.Secrets, inputSchema, "secrets")
 	diags.Append(diags...)
 	if secrets != nil {
 		driverInputs.Secrets = &client.ValuesSecretsRequest_Secrets{
@@ -401,7 +400,7 @@ func driverInputsFromModel(ctx context.Context, driver *client.DriverDefinitionR
 		}
 	}
 
-	values, diags := driverInputToMap(ctx, data.DriverInputs.Values, driver.InputsSchema.AdditionalProperties, "values")
+	values, diags := driverInputToMap(ctx, data.DriverInputs.Values, inputSchema, "values")
 	diags.Append(diags...)
 	if values != nil {
 		driverInputs.Values = &client.ValuesSecretsRequest_Values{
@@ -424,13 +423,13 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 
 	criteria := criteriaFromModel(data)
 	driverType := data.DriverType.ValueString()
-	driver, diag := r.data.DriverByDriverType(ctx, driverType)
+	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	driverInputs, diag := driverInputsFromModel(ctx, driver, data)
+	driverInputs, diag := driverInputsFromModel(ctx, driverInputSchema, data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -455,7 +454,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -485,13 +484,13 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	driver, diag := r.data.DriverByDriverType(ctx, *httpResp.JSON200.DriverType)
+	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, *httpResp.JSON200.DriverType, *&httpResp.JSON200.Type)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -559,13 +558,13 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 
 	name := data.Name.ValueString()
 	driverType := data.DriverType.ValueString()
-	driver, diag := r.data.DriverByDriverType(ctx, driverType)
+	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	driverInputs, diag := driverInputsFromModel(ctx, driver, data)
+	driverInputs, diag := driverInputsFromModel(ctx, driverInputSchema, data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -631,7 +630,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

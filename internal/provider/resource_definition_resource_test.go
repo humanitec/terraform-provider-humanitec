@@ -62,6 +62,20 @@ func TestAccResourceDefinition(t *testing.T) {
 			},
 			resourceAttrNameUpdateValue2: "test-2",
 		},
+		{
+			name: "DNS",
+			configCreate: func() string {
+				return testAccResourceDefinitionDNSStaticResource("test-1")
+			},
+			resourceAttrNameIDValue:      "dns-test",
+			resourceAttrNameUpdateKey:    "driver_inputs.values.host",
+			resourceAttrNameUpdateValue1: "test-1",
+			resourceAttrName:             "humanitec_resource_definition.dns_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionDNSStaticResource("test-2")
+			},
+			resourceAttrNameUpdateValue2: "test-2",
+		},
 	}
 
 	for _, tc := range tests {
@@ -161,6 +175,23 @@ resource "humanitec_resource_definition" "gke_test" {
   }
 }
 `, name)
+}
+
+func testAccResourceDefinitionDNSStaticResource(host string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "dns_test" {
+  id          = "dns-test"
+  name        = "dns-test"
+  type        = "dns"
+  driver_type = "humanitec/static"
+
+  driver_inputs = {
+    values = {
+      host = "%s"
+    }
+  }
+}
+`, host)
 }
 
 func TestAccResourceDefinitionWithDefinition(t *testing.T) {
