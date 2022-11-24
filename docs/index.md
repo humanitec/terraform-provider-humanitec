@@ -23,6 +23,6 @@ provider "humanitec" {
 
 ### Optional
 
-- `host` (String) Humanitec API host (also reads HUMANITEC_HOST)
-- `org_id` (String) Humanitec Organization ID (also reads HUMANITEC_ORG_ID)
-- `token` (String, Sensitive) Humanitec Token (also reads HUMANITEC_TOKEN)
+- `host` (String) Humanitec API host (or using the `HUMANITEC_HOST` environment variable)
+- `org_id` (String) Humanitec Organization ID (or using the `HUMANITEC_ORG_ID` environment variable)
+- `token` (String, Sensitive) Humanitec Token (or using the `HUMANITEC_TOKEN` environment variable)

@@ -45,9 +45,11 @@ resource "humanitec_resource_definition" "postgres" {
     }
   }
 
-  criteria = [{
-    app_id = "test-app"
-  }]
+  criteria = [
+    {
+      app_id = "test-app"
+    }
+  ]
 }
 
 resource "humanitec_resource_definition" "gke" {
