@@ -81,7 +81,7 @@ func (r *ResourceAccountResource) Configure(ctx context.Context, req resource.Co
 		return
 	}
 
-	resdata, ok := req.ProviderData.(*HumanitecResourceData)
+	resdata, ok := req.ProviderData.(*HumanitecData)
 
 	if !ok {
 		resp.Diagnostics.AddError(

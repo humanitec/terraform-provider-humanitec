@@ -25,8 +25,15 @@ func NewResourceDefinitionResource() resource.Resource {
 
 // ResourceDefinitionResource defines the resource implementation.
 type ResourceDefinitionResource struct {
-	client *client.ClientWithResponses
-	orgId  string
+	data *HumanitecData
+}
+
+func (r *ResourceDefinitionResource) client() *client.ClientWithResponses {
+	return r.data.Client
+}
+
+func (r *ResourceDefinitionResource) orgId() string {
+	return r.data.OrgID
 }
 
 // DefinitionResourceDriverInputsModel describes the resource data model.
@@ -160,7 +167,7 @@ func (r *ResourceDefinitionResource) Configure(ctx context.Context, req resource
 		return
 	}
 
-	resdata, ok := req.ProviderData.(*HumanitecResourceData)
+	data, ok := req.ProviderData.(*HumanitecData)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -171,8 +178,7 @@ func (r *ResourceDefinitionResource) Configure(ctx context.Context, req resource
 		return
 	}
 
-	r.client = resdata.Client
-	r.orgId = resdata.OrgID
+	r.data = data
 }
 
 func parseOptionalString(input *string) types.String {
@@ -183,10 +189,9 @@ func parseOptionalString(input *string) types.String {
 	return types.StringValue(*input)
 }
 
-func parseMapInput(driver *client.DriverDefinitionResponse, input map[string]interface{}) (map[string]string, diag.Diagnostics) {
+func parseMapInput(inputSchema map[string]interface{}, input map[string]interface{}) (map[string]string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	inputSchema := driver.InputsSchema.AdditionalProperties
 	inputSchemaJSON, err := json.MarshalIndent(inputSchema, "", "\t")
 	if err != nil {
 		diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal driver schema: %s", err.Error()))
@@ -246,7 +251,7 @@ func parseCriteriaInput(criteria *[]client.MatchingCriteriaResponse) *[]Definiti
 	return &data
 }
 
-func parseResourceDefinitionResponse(ctx context.Context, driver *client.DriverDefinitionResponse, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
+func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[string]interface{}, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	data.ID = types.StringValue(res.Id)
@@ -268,7 +273,7 @@ func parseResourceDefinitionResponse(ctx context.Context, driver *client.DriverD
 		if driverInputs.Values == nil {
 			data.DriverInputs.Values = types.MapNull(types.StringType)
 		} else {
-			valuesMap, diag := parseMapInput(driver, driverInputs.Values.AdditionalProperties)
+			valuesMap, diag := parseMapInput(driverInputSchema, driverInputs.Values.AdditionalProperties)
 			diags.Append(diag...)
 
 			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
@@ -382,12 +387,12 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 	return inputMap, diags
 }
 
-func driverInputsFromModel(ctx context.Context, driver *client.DriverDefinitionResponse, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
+func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	driverInputs := &client.ValuesSecretsRequest{}
 
-	secrets, diags := driverInputToMap(ctx, data.DriverInputs.Secrets, driver.InputsSchema.AdditionalProperties, "secrets")
+	secrets, diags := driverInputToMap(ctx, data.DriverInputs.Secrets, inputSchema, "secrets")
 	diags.Append(diags...)
 	if secrets != nil {
 		driverInputs.Secrets = &client.ValuesSecretsRequest_Secrets{
@@ -395,7 +400,7 @@ func driverInputsFromModel(ctx context.Context, driver *client.DriverDefinitionR
 		}
 	}
 
-	values, diags := driverInputToMap(ctx, data.DriverInputs.Values, driver.InputsSchema.AdditionalProperties, "values")
+	values, diags := driverInputToMap(ctx, data.DriverInputs.Values, inputSchema, "values")
 	diags.Append(diags...)
 	if values != nil {
 		driverInputs.Values = &client.ValuesSecretsRequest_Values{
@@ -404,40 +409,6 @@ func driverInputsFromModel(ctx context.Context, driver *client.DriverDefinitionR
 	}
 
 	return driverInputs, diags
-}
-
-func (r *ResourceDefinitionResource) driverByDriverType(ctx context.Context, driverType string) (*client.DriverDefinitionResponse, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	httpResp, err := r.client.GetOrgsOrgIdResourcesDriversWithResponse(ctx, r.orgId)
-	if err != nil {
-		diags.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to get resource drivers, got error: %s", err))
-		return nil, diags
-	}
-
-	if httpResp.StatusCode() != 200 {
-		diags.AddError(HUM_API_ERR, fmt.Sprintf("Unable to get resource drivers, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-		return nil, diags
-	}
-
-	if httpResp.JSON200 == nil {
-		diags.AddError(HUM_API_ERR, fmt.Sprintf("Unable to get resource drivers, missing body, body: %s", httpResp.Body))
-		return nil, diags
-	}
-
-	driversByType := map[string]*client.DriverDefinitionResponse{}
-	for _, d := range *httpResp.JSON200 {
-		d := d
-		driversByType[fmt.Sprintf("%s/%s", d.OrgId, d.Id)] = &d
-	}
-
-	driver, ok := driversByType[driverType]
-	if !ok {
-		diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Not resource driver found for type: %s", driverType))
-		return nil, diags
-	}
-
-	return driver, diags
 }
 
 func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -452,19 +423,19 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 
 	criteria := criteriaFromModel(data)
 	driverType := data.DriverType.ValueString()
-	driver, diag := r.driverByDriverType(ctx, driverType)
+	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	driverInputs, diag := driverInputsFromModel(ctx, driver, data)
+	driverInputs, diag := driverInputsFromModel(ctx, driverInputSchema, data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	httpResp, err := r.client.PostOrgsOrgIdResourcesDefsWithResponse(ctx, r.orgId, client.PostOrgsOrgIdResourcesDefsJSONRequestBody{
+	httpResp, err := r.client().PostOrgsOrgIdResourcesDefsWithResponse(ctx, r.orgId(), client.PostOrgsOrgIdResourcesDefsJSONRequestBody{
 		Criteria:      criteria,
 		DriverAccount: optionalStringFromModel(data.DriverAccount),
 		DriverInputs:  driverInputs,
@@ -483,7 +454,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -502,7 +473,7 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	httpResp, err := r.client.GetOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+	httpResp, err := r.client().GetOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource definition, got error: %s", err))
 		return
@@ -513,13 +484,13 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	driver, diag := r.driverByDriverType(ctx, *httpResp.JSON200.DriverType)
+	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, *httpResp.JSON200.DriverType, *&httpResp.JSON200.Type)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -587,13 +558,13 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 
 	name := data.Name.ValueString()
 	driverType := data.DriverType.ValueString()
-	driver, diag := r.driverByDriverType(ctx, driverType)
+	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	driverInputs, diag := driverInputsFromModel(ctx, driver, data)
+	driverInputs, diag := driverInputsFromModel(ctx, driverInputSchema, data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -604,7 +575,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 
 	// Add criteria
 	for _, c := range addedCriteria {
-		httpResp, err := r.client.PostOrgsOrgIdResourcesDefsDefIdCriteriaWithResponse(ctx, r.orgId, defID, client.PostOrgsOrgIdResourcesDefsDefIdCriteriaJSONRequestBody{
+		httpResp, err := r.client().PostOrgsOrgIdResourcesDefsDefIdCriteriaWithResponse(ctx, r.orgId(), defID, client.PostOrgsOrgIdResourcesDefsDefIdCriteriaJSONRequestBody{
 			AppId:   optionalStringFromModel(c.AppID),
 			EnvId:   optionalStringFromModel(c.EnvID),
 			EnvType: optionalStringFromModel(c.EnvType),
@@ -630,7 +601,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 			continue
 		}
 
-		httpResp, err := r.client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdWithResponse(ctx, r.orgId, defID, criteriaID, &client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdParams{
+		httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdWithResponse(ctx, r.orgId(), defID, criteriaID, &client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdParams{
 			Force: &force,
 		})
 		if err != nil {
@@ -644,7 +615,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		}
 	}
 
-	httpResp, err := r.client.PatchOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId, defID, client.PatchOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
+	httpResp, err := r.client().PatchOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), defID, client.PatchOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
 		DriverAccount: optionalStringFromModel(data.DriverAccount),
 		DriverInputs:  driverInputs,
 		Name:          &name,
@@ -659,7 +630,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driver, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -679,7 +650,7 @@ func (r *ResourceDefinitionResource) Delete(ctx context.Context, req resource.De
 	}
 
 	force := false
-	httpResp, err := r.client.DeleteOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId, data.ID.ValueString(), &client.DeleteOrgsOrgIdResourcesDefsDefIdParams{
+	httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), data.ID.ValueString(), &client.DeleteOrgsOrgIdResourcesDefsDefIdParams{
 		Force: &force,
 	})
 	if err != nil {
