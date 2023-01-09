@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -338,4 +339,179 @@ func TestDiffCriteria(t *testing.T) {
 			assert.Equal(tc.expectedRemoved, removed)
 		})
 	}
+}
+
+func TestDriverInputToMap(t *testing.T) {
+	assert := assert.New(t)
+
+	ctx := context.Background()
+
+	input, diags := types.MapValueFrom(ctx, types.StringType, map[string]string{
+		"stringValue":  "test",
+		"integerValue": "1",
+		"objectValue":  "{\"nested\":\"value\"}",
+	})
+	if diags.HasError() {
+		assert.Fail("errors found", diags)
+	}
+	schema := map[string]interface{}{
+		"properties": map[string]interface{}{
+			"test": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"stringValue": map[string]interface{}{
+						"type": "string",
+					},
+					"integerValue": map[string]interface{}{
+						"type": "integer",
+					},
+					"objectValue": map[string]interface{}{
+						"type": "object",
+					},
+				},
+			},
+		},
+	}
+
+	m, diags := driverInputToMap(ctx, input, schema, "test")
+	if diags.HasError() {
+		assert.Fail("errors found", diags)
+	}
+
+	expected := map[string]interface{}{
+		"stringValue":  "test",
+		"integerValue": 1,
+		"objectValue": map[string]interface{}{
+			"nested": "value",
+		},
+	}
+	assert.Equal(expected, m)
+}
+
+func TestDriverInputToMap_MissingValue(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+
+	input, diags := types.MapValueFrom(ctx, types.StringType, map[string]string{
+		"missingValue": "test",
+	})
+	if diags.HasError() {
+		assert.Fail("errors found", diags)
+	}
+	schema := map[string]interface{}{
+		"properties": map[string]interface{}{
+			"test": map[string]interface{}{
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+
+	_, diags = driverInputToMap(ctx, input, schema, "test")
+	assert.True(diags.HasError())
+}
+
+func TestDriverInputToMap_UnexpectedType(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+
+	input, diags := types.MapValueFrom(ctx, types.StringType, map[string]string{
+		"unexpectedValue": "test",
+	})
+	if diags.HasError() {
+		assert.Fail("errors found", diags)
+	}
+	schema := map[string]interface{}{
+		"properties": map[string]interface{}{
+			"test": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"unexpectedValue": map[string]interface{}{
+						"type": "unexpected",
+					},
+				},
+			},
+		},
+	}
+
+	_, diags = driverInputToMap(ctx, input, schema, "test")
+	assert.True(diags.HasError())
+}
+
+func TestParseMapInput(t *testing.T) {
+	assert := assert.New(t)
+
+	input := map[string]interface{}{
+		"stringValue":  "test",
+		"integerValue": float64(1),
+		"objectValue": map[string]interface{}{
+			"nested": "value",
+		},
+	}
+	schema := map[string]interface{}{
+		"properties": map[string]interface{}{
+			"test": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"stringValue": map[string]interface{}{
+						"type": "string",
+					},
+					"integerValue": map[string]interface{}{
+						"type": "integer",
+					},
+					"objectValue": map[string]interface{}{
+						"type": "object",
+					},
+				},
+			},
+		},
+	}
+
+	m, diags := parseMapInput(input, schema, "test")
+	if diags.HasError() {
+		assert.Fail("errors found", diags)
+	}
+
+	expected := map[string]string{
+		"stringValue":  "test",
+		"integerValue": "1",
+		"objectValue":  "{\"nested\":\"value\"}",
+	}
+	assert.Equal(expected, m)
+}
+
+func TestParseMapInput_MissingValue(t *testing.T) {
+	assert := assert.New(t)
+
+	input := map[string]interface{}{
+		"missingValue": "test",
+	}
+	schema := map[string]interface{}{
+		"properties": map[string]interface{}{
+			"test": map[string]interface{}{
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+
+	_, diags := parseMapInput(input, schema, "test")
+	assert.True(diags.HasError())
+}
+
+func TestParseMapInput_UnexpectedType(t *testing.T) {
+	assert := assert.New(t)
+
+	input := map[string]interface{}{
+		"unexpectedValue": "test",
+	}
+	schema := map[string]interface{}{
+		"properties": map[string]interface{}{
+			"test": map[string]interface{}{
+				"properties": map[string]interface{}{
+					"unexpectedValue": map[string]interface{}{
+						"type": "unexpected",
+					},
+				},
+			},
+		},
+	}
+
+	_, diags := parseMapInput(input, schema, "test")
+	assert.True(diags.HasError())
 }

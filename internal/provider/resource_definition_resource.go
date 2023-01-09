@@ -189,7 +189,7 @@ func parseOptionalString(input *string) types.String {
 	return types.StringValue(*input)
 }
 
-func parseMapInput(inputSchema map[string]interface{}, input map[string]interface{}) (map[string]string, diag.Diagnostics) {
+func parseMapInput(input map[string]interface{}, inputSchema map[string]interface{}, field string) (map[string]string, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	inputSchemaJSON, err := json.MarshalIndent(inputSchema, "", "\t")
@@ -198,7 +198,7 @@ func parseMapInput(inputSchema map[string]interface{}, input map[string]interfac
 	}
 
 	lenDriverInput := len(input)
-	inputProperties, ok := valueAtPath[map[string]interface{}](inputSchema, []string{"properties", "values", "properties"})
+	inputProperties, ok := valueAtPath[map[string]interface{}](inputSchema, []string{"properties", field, "properties"})
 	if lenDriverInput > 0 && !ok {
 		diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("No value inputs expected in driver input schema:\n%s", string(inputSchemaJSON)))
 		return nil, diags
@@ -273,7 +273,7 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 		if driverInputs.Values == nil {
 			data.DriverInputs.Values = types.MapNull(types.StringType)
 		} else {
-			valuesMap, diag := parseMapInput(driverInputSchema, driverInputs.Values.AdditionalProperties)
+			valuesMap, diag := parseMapInput(driverInputs.Values.AdditionalProperties, driverInputSchema, "values")
 			diags.Append(diag...)
 
 			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
