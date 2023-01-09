@@ -6,6 +6,9 @@
 
 ---
 
+* [Usage](https://registry.terraform.io/providers/humanitec/humanitec/latest)
+* [Documentation](https://registry.terraform.io/providers/humanitec/humanitec/latest/docs)
+
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
