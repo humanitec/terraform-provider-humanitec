@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -216,8 +217,16 @@ func parseMapInput(input map[string]interface{}, inputSchema map[string]interfac
 		case "string":
 			inputMap[k] = v.(string)
 		case "integer":
+			if isReference(v) {
+				inputMap[k] = v.(string)
+				continue
+			}
 			inputMap[k] = strconv.FormatInt(int64(v.(float64)), 10)
 		case "object":
+			if isReference(v) {
+				inputMap[k] = v.(string)
+				continue
+			}
 			obj, err := json.Marshal(v)
 			if err != nil {
 				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to marshal property \"%s\": %s", k, err.Error()))
@@ -330,6 +339,15 @@ func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteria
 	return &criteria
 }
 
+// isReference returns whether a value is a resource reference https://docs.humanitec.com/reference/concepts/resources/references
+func isReference(v interface{}) bool {
+	s, ok := v.(string)
+	if !ok {
+		return false
+	}
+	return strings.HasPrefix(s, "${resources")
+}
+
 func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[string]interface{}, field string) (map[string]interface{}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
@@ -356,7 +374,7 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 	for k, v := range driverInput {
 		propertyType, ok := valueAtPath[string](inputProperties, []string{k, "type"})
 		if !ok {
-			diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Property \"%s\" not found in driver input schema:\n%s", k, string(inputSchemaJSON)))
+			diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Property \"%s\" not found in driver input schema %s:\n%s", k, field, string(inputSchemaJSON)))
 			continue
 		}
 
@@ -364,6 +382,10 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 		case "string":
 			inputMap[k] = v
 		case "integer":
+			if isReference(v) {
+				inputMap[k] = v
+				continue
+			}
 			intVar, err := strconv.Atoi(v)
 			if err != nil {
 				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to int: %s", k, v, err.Error()))
@@ -371,6 +393,10 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 			}
 			inputMap[k] = intVar
 		case "object":
+			if isReference(v) {
+				inputMap[k] = v
+				continue
+			}
 			var obj map[string]interface{}
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
 				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal property \"%s\": %s", k, err.Error()))
@@ -378,7 +404,7 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 			}
 			inputMap[k] = obj
 		default:
-			diags.AddError(HUM_PROVIDER_ERR, fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\" driver input schema:\n%s", propertyType, k, string(inputSchemaJSON)))
+			diags.AddError(HUM_PROVIDER_ERR, fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\" driver input schema %s:\n%s", propertyType, k, field, string(inputSchemaJSON)))
 			continue
 		}
 
@@ -388,27 +414,27 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 }
 
 func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
-	var diags diag.Diagnostics
+	var diag diag.Diagnostics
 
 	driverInputs := &client.ValuesSecretsRequest{}
 
-	secrets, diags := driverInputToMap(ctx, data.DriverInputs.Secrets, inputSchema, "secrets")
-	diags.Append(diags...)
+	secrets, secretsDiag := driverInputToMap(ctx, data.DriverInputs.Secrets, inputSchema, "secrets")
+	diag.Append(secretsDiag...)
 	if secrets != nil {
 		driverInputs.Secrets = &client.ValuesSecretsRequest_Secrets{
 			AdditionalProperties: secrets,
 		}
 	}
 
-	values, diags := driverInputToMap(ctx, data.DriverInputs.Values, inputSchema, "values")
-	diags.Append(diags...)
+	values, valueDiag := driverInputToMap(ctx, data.DriverInputs.Values, inputSchema, "values")
+	diag.Append(valueDiag...)
 	if values != nil {
 		driverInputs.Values = &client.ValuesSecretsRequest_Values{
 			AdditionalProperties: values,
 		}
 	}
 
-	return driverInputs, diags
+	return driverInputs, diag
 }
 
 func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

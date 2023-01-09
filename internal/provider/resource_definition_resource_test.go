@@ -347,9 +347,11 @@ func TestDriverInputToMap(t *testing.T) {
 	ctx := context.Background()
 
 	input, diags := types.MapValueFrom(ctx, types.StringType, map[string]string{
-		"stringValue":  "test",
-		"integerValue": "1",
-		"objectValue":  "{\"nested\":\"value\"}",
+		"stringValue":     "test",
+		"integerValue":    "1",
+		"refIntegerValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
+		"objectValue":     "{\"nested\":\"value\"}",
+		"refObjectValue":  "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 	})
 	if diags.HasError() {
 		assert.Fail("errors found", diags)
@@ -364,7 +366,13 @@ func TestDriverInputToMap(t *testing.T) {
 					"integerValue": map[string]interface{}{
 						"type": "integer",
 					},
+					"refIntegerValue": map[string]interface{}{
+						"type": "integer",
+					},
 					"objectValue": map[string]interface{}{
+						"type": "object",
+					},
+					"refObjectValue": map[string]interface{}{
 						"type": "object",
 					},
 				},
@@ -378,11 +386,13 @@ func TestDriverInputToMap(t *testing.T) {
 	}
 
 	expected := map[string]interface{}{
-		"stringValue":  "test",
-		"integerValue": 1,
+		"stringValue":     "test",
+		"integerValue":    1,
+		"refIntegerValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 		"objectValue": map[string]interface{}{
 			"nested": "value",
 		},
+		"refObjectValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 	}
 	assert.Equal(expected, m)
 }
@@ -439,11 +449,13 @@ func TestParseMapInput(t *testing.T) {
 	assert := assert.New(t)
 
 	input := map[string]interface{}{
-		"stringValue":  "test",
-		"integerValue": float64(1),
+		"stringValue":     "test",
+		"integerValue":    float64(1),
+		"refIntegerValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 		"objectValue": map[string]interface{}{
 			"nested": "value",
 		},
+		"refObjectValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 	}
 	schema := map[string]interface{}{
 		"properties": map[string]interface{}{
@@ -455,7 +467,13 @@ func TestParseMapInput(t *testing.T) {
 					"integerValue": map[string]interface{}{
 						"type": "integer",
 					},
+					"refIntegerValue": map[string]interface{}{
+						"type": "integer",
+					},
 					"objectValue": map[string]interface{}{
+						"type": "object",
+					},
+					"refObjectValue": map[string]interface{}{
 						"type": "object",
 					},
 				},
@@ -469,9 +487,11 @@ func TestParseMapInput(t *testing.T) {
 	}
 
 	expected := map[string]string{
-		"stringValue":  "test",
-		"integerValue": "1",
-		"objectValue":  "{\"nested\":\"value\"}",
+		"stringValue":     "test",
+		"integerValue":    "1",
+		"refIntegerValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
+		"objectValue":     "{\"nested\":\"value\"}",
+		"refObjectValue":  "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 	}
 	assert.Equal(expected, m)
 }
