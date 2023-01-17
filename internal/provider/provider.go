@@ -118,7 +118,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		// Not returning early allows the logic to collect all errors.
 	}
 
-	client, diags := NewHumanitecClient(host, token)
+	client, diags := NewHumanitecClient(host, token, p.version)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
