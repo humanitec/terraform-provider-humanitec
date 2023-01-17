@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/humanitec/terraform-provider-humanitec/internal/client"
+	"github.com/humanitec/humanitec-go-autogen/client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces
@@ -282,7 +282,7 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 		if driverInputs.Values == nil {
 			data.DriverInputs.Values = types.MapNull(types.StringType)
 		} else {
-			valuesMap, diag := parseMapInput(driverInputs.Values.AdditionalProperties, driverInputSchema, "values")
+			valuesMap, diag := parseMapInput(*driverInputs.Values, driverInputSchema, "values")
 			diags.Append(diag...)
 
 			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
@@ -421,17 +421,13 @@ func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface
 	secrets, secretsDiag := driverInputToMap(ctx, data.DriverInputs.Secrets, inputSchema, "secrets")
 	diag.Append(secretsDiag...)
 	if secrets != nil {
-		driverInputs.Secrets = &client.ValuesSecretsRequest_Secrets{
-			AdditionalProperties: secrets,
-		}
+		driverInputs.Secrets = &secrets
 	}
 
 	values, valueDiag := driverInputToMap(ctx, data.DriverInputs.Values, inputSchema, "values")
 	diag.Append(valueDiag...)
 	if values != nil {
-		driverInputs.Values = &client.ValuesSecretsRequest_Values{
-			AdditionalProperties: values,
-		}
+		driverInputs.Values = &values
 	}
 
 	return driverInputs, diag

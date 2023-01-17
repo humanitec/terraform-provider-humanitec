@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/humanitec/terraform-provider-humanitec/internal/client"
+	"github.com/humanitec/humanitec-go-autogen/client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces
@@ -124,12 +124,10 @@ func (r *ResourceAccountResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	httpResp, err := r.client.PostOrgsOrgIdResourcesAccountsWithResponse(ctx, r.orgId, client.PostOrgsOrgIdResourcesAccountsJSONRequestBody{
-		Id:   &id,
-		Name: &name,
-		Type: &accountType,
-		Credentials: &client.CreateResourceAccountRequestRequest_Credentials{
-			AdditionalProperties: credentials,
-		},
+		Id:          &id,
+		Name:        &name,
+		Type:        &accountType,
+		Credentials: &credentials,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource account, got error: %s", err))
@@ -194,10 +192,8 @@ func (r *ResourceAccountResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	httpResp, err := r.client.PatchOrgsOrgIdResourcesAccountsAccIdWithResponse(ctx, r.orgId, data.ID.ValueString(), client.PatchOrgsOrgIdResourcesAccountsAccIdJSONRequestBody{
-		Name: &name,
-		Credentials: &client.UpdateResourceAccountRequestRequest_Credentials{
-			AdditionalProperties: credentials,
-		},
+		Name:        &name,
+		Credentials: &credentials,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update resource account, got error: %s", err))

@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/humanitec/terraform-provider-humanitec/internal/client"
+	"github.com/humanitec/humanitec-go-autogen/client"
 )
 
 type HumanitecData struct {
@@ -132,9 +132,7 @@ func (h *HumanitecData) DriverInputSchemaByDriverTypeOrType(ctx context.Context,
 			return nil, diags
 		}
 
-		inputSchema := resource.OutputsSchema.AdditionalProperties
-
-		return inputSchema, diags
+		return resource.OutputsSchema, diags
 	}
 
 	driver, diags := h.driverByDriverType(ctx, driverType)
@@ -142,7 +140,5 @@ func (h *HumanitecData) DriverInputSchemaByDriverTypeOrType(ctx context.Context,
 		return nil, diags
 	}
 
-	inputSchema := driver.InputsSchema.AdditionalProperties
-
-	return inputSchema, diags
+	return driver.InputsSchema, diags
 }
