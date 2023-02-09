@@ -6,11 +6,12 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
 )
 
 type HumanitecData struct {
-	Client *client.ClientWithResponses
+	Client *humanitec.Client
 	OrgID  string
 
 	fetchDriversMu sync.Mutex
