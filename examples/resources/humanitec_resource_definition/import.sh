@@ -1,0 +1,1 @@
+terraform import humanitec_resource_definition.example resource_definition_id
