@@ -48,7 +48,3 @@ install: build
 clean:
 	# @git clean -f -d
 	@echo "Clean"
-
-generate-humanitec-client:
-	curl -fsSL https://api-docs.humanitec.com/openapi.json > ./internal/client/openapi.json
-	oapi-codegen -generate types,client -package client ./internal/client/openapi.json > internal/client/client.gen.go
