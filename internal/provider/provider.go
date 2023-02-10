@@ -5,16 +5,14 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Ensure HumanitecProvider satisfies various provider interfaces.
 var _ provider.Provider = &HumanitecProvider{}
-var _ provider.ProviderWithMetadata = &HumanitecProvider{}
 
 // HumanitecProvider defines the provider implementation.
 type HumanitecProvider struct {
@@ -43,29 +41,26 @@ func (p *HumanitecProvider) Metadata(ctx context.Context, req provider.MetadataR
 	resp.Version = p.version
 }
 
-func (p *HumanitecProvider) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (p *HumanitecProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		MarkdownDescription: "Experimental Terraform Provider for [Humanitec](https://humanitec.com/).",
 
-		Attributes: map[string]tfsdk.Attribute{
-			"host": {
+		Attributes: map[string]schema.Attribute{
+			"host": schema.StringAttribute{
 				MarkdownDescription: "Humanitec API host (or using the `HUMANITEC_HOST` environment variable)",
-				Type:                types.StringType,
 				Optional:            true,
 			},
-			"org_id": {
+			"org_id": schema.StringAttribute{
 				MarkdownDescription: "Humanitec Organization ID (or using the `HUMANITEC_ORG_ID` environment variable)",
-				Type:                types.StringType,
 				Optional:            true,
 			},
-			"token": {
+			"token": schema.StringAttribute{
 				MarkdownDescription: "Humanitec Token (or using the `HUMANITEC_TOKEN` environment variable)",
-				Type:                types.StringType,
 				Optional:            true,
 				Sensitive:           true,
 			},
 		},
-	}, nil
+	}
 }
 
 func (p *HumanitecProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
