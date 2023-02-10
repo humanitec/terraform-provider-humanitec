@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.14.1
 	github.com/hashicorp/terraform-plugin-log v0.7.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.1
-	github.com/humanitec/humanitec-go-autogen v0.0.0-20230117122829-804f753caae4
+	github.com/humanitec/humanitec-go-autogen v0.0.0-20230118135120-3617bda2a581
 	github.com/stretchr/testify v1.8.1
 )
 

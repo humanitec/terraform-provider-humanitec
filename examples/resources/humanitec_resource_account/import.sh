@@ -1,0 +1,1 @@
+terraform import humanitec_resource_account.example resource_account_id

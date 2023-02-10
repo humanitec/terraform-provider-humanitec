@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
+	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
 )
 
@@ -24,7 +25,7 @@ func NewResourceAccountResource() resource.Resource {
 
 // ResourceDefinitionResource defines the resource implementation.
 type ResourceAccountResource struct {
-	client *client.ClientWithResponses
+	client *humanitec.Client
 	orgId  string
 }
 

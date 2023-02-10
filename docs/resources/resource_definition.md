@@ -122,4 +122,10 @@ Optional:
 - `secrets` (Map of String, Sensitive) Secrets section of the data set.
 - `values` (Map of String) Values section of the data set. Passed around as-is.
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import humanitec_resource_definition.example resource_definition_id
+```

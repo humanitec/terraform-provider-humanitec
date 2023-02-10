@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
+	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
 )
 
@@ -29,7 +30,7 @@ type ResourceDefinitionResource struct {
 	data *HumanitecData
 }
 
-func (r *ResourceDefinitionResource) client() *client.ClientWithResponses {
+func (r *ResourceDefinitionResource) client() *humanitec.Client {
 	return r.data.Client
 }
 

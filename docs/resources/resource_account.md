@@ -31,4 +31,10 @@ resource "humanitec_resource_account" "gcp_test" {
 - `name` (String) Display name.
 - `type` (String) The type of the account
 
+## Import
 
+Import is supported using the following syntax:
+
+```shell
+terraform import humanitec_resource_account.example resource_account_id
+```
