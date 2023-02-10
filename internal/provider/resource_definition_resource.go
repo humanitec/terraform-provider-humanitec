@@ -10,7 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/humanitec/humanitec-go-autogen"
@@ -68,99 +70,87 @@ func (r *ResourceDefinitionResource) Metadata(ctx context.Context, req resource.
 	resp.TypeName = req.ProviderTypeName + "_resource_definition"
 }
 
-func (r *ResourceDefinitionResource) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		MarkdownDescription: "Visit the [docs](https://docs.humanitec.com/reference/concepts/resources/definitions) to learn more about resource definitions.",
 
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The Resource Definition ID.",
-				Type:                types.StringType,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				MarkdownDescription: "The display name.",
 				Required:            true,
-				Type:                types.StringType,
 			},
-			"type": {
+			"type": schema.StringAttribute{
 				MarkdownDescription: "The Resource Type.",
 				Required:            true,
-				Type:                types.StringType,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"driver_type": {
+			"driver_type": schema.StringAttribute{
 				MarkdownDescription: "The driver to be used to create the resource.",
 				Required:            true,
-				Type:                types.StringType,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"driver_account": {
+			"driver_account": schema.StringAttribute{
 				MarkdownDescription: "Security account required by the driver.",
 				Optional:            true,
-				Type:                types.StringType,
 			},
-			"driver_inputs": {
+			"driver_inputs": schema.SingleNestedAttribute{
 				MarkdownDescription: "Data that should be passed around split by sensitivity.",
 				Optional:            true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"values": {
+				Attributes: map[string]schema.Attribute{
+					"values": schema.MapAttribute{
 						MarkdownDescription: "Values section of the data set. Passed around as-is.",
+						ElementType:         types.StringType,
 						Optional:            true,
-						Type: types.MapType{
-							ElemType: types.StringType,
-						},
 					},
-					"secrets": {
+					"secrets": schema.MapAttribute{
 						MarkdownDescription: "Secrets section of the data set.",
+						ElementType:         types.StringType,
 						Optional:            true,
-						Type: types.MapType{
-							ElemType: types.StringType,
-						},
-						Sensitive: true,
+						Sensitive:           true,
 					},
-				}),
+				},
 			},
-			"criteria": {
+			"criteria": schema.SetNestedAttribute{
 				MarkdownDescription: "The criteria to use when looking for a Resource Definition during the deployment.",
 				Optional:            true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						MarkdownDescription: "Matching Criteria ID",
-						Computed:            true,
-						Type:                types.StringType,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							MarkdownDescription: "Matching Criteria ID",
+							Computed:            true,
+						},
+						"app_id": schema.StringAttribute{
+							MarkdownDescription: "The ID of the Application that the Resources should belong to.",
+							Optional:            true,
+						},
+						"env_id": schema.StringAttribute{
+							MarkdownDescription: "The ID of the Environment that the Resources should belong to. If env_type is also set, it must match the Type of the Environment for the Criteria to match.",
+							Optional:            true,
+						},
+						"env_type": schema.StringAttribute{
+							MarkdownDescription: "The Type of the Environment that the Resources should belong to. If env_id is also set, it must have an Environment Type that matches this parameter for the Criteria to match.",
+							Optional:            true,
+						},
+						"res_id": schema.StringAttribute{
+							MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a . separated path to the definition in the set, e.g. modules.my-module.externals.my-database.",
+							Optional:            true,
+						},
 					},
-					"app_id": {
-						MarkdownDescription: "The ID of the Application that the Resources should belong to.",
-						Optional:            true,
-						Type:                types.StringType,
-					},
-					"env_id": {
-						MarkdownDescription: "The ID of the Environment that the Resources should belong to. If env_type is also set, it must match the Type of the Environment for the Criteria to match.",
-						Optional:            true,
-						Type:                types.StringType,
-					},
-					"env_type": {
-						MarkdownDescription: "The Type of the Environment that the Resources should belong to. If env_id is also set, it must have an Environment Type that matches this parameter for the Criteria to match.",
-						Optional:            true,
-						Type:                types.StringType,
-					},
-					"res_id": {
-						MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a . separated path to the definition in the set, e.g. modules.my-module.externals.my-database.",
-						Optional:            true,
-						Type:                types.StringType,
-					},
-				}),
+				},
 			},
 		},
-	}, nil
+	}
 }
 
 func (r *ResourceDefinitionResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
