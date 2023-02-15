@@ -136,7 +136,9 @@ func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Res
 }
 
 func (p *HumanitecProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		NewSourceIPRangesDataSource,
+	}
 }
 
 func New(version string) func() provider.Provider {
