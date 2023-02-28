@@ -1,0 +1,1 @@
+terraform import humanitec_application.example resource_application_id
