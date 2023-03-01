@@ -1,0 +1,1 @@
+terraform import humanitec_artefact_version.example resource_artefact_version_id
