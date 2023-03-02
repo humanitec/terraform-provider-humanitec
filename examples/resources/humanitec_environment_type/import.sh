@@ -1,0 +1,1 @@
+terraform import humanitec_environment_type.example resource_environment_type_id
