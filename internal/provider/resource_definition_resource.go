@@ -628,10 +628,10 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		}
 	}
 
-	httpResp, err := r.client().PatchOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), defID, client.PatchOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
+	httpResp, err := r.client().PutOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), defID, client.PutOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
 		DriverAccount: optionalStringFromModel(data.DriverAccount),
 		DriverInputs:  driverInputs,
-		Name:          &name,
+		Name:          name,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read definition, got error: %s", err))
