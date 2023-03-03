@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -46,7 +46,7 @@ func TestNewHumanitecClientWrite(t *testing.T) {
 		assert.Equal(fmt.Sprintf("Bearer %s", token), r.Header.Get("Authorization"))
 
 		defer r.Body.Close()
-		resBody, err := ioutil.ReadAll(r.Body)
+		resBody, err := io.ReadAll(r.Body)
 		assert.NoError(err)
 		assert.Equal("{\"name\":\"changed\"}", string(resBody))
 
