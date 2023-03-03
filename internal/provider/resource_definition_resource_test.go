@@ -77,6 +77,20 @@ func TestAccResourceDefinition(t *testing.T) {
 			},
 			resourceAttrNameUpdateValue2: "test-2",
 		},
+		{
+			name: "Ingress",
+			configCreate: func() string {
+				return testAccResourceDefinitionIngressResource("test-1")
+			},
+			resourceAttrNameIDValue:      "ingress-test",
+			resourceAttrNameUpdateKey:    "driver_inputs.values.labels",
+			resourceAttrNameUpdateValue1: "{\"name\":\"test-1\"}",
+			resourceAttrName:             "humanitec_resource_definition.ingress_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionIngressResource("test-2")
+			},
+			resourceAttrNameUpdateValue2: "{\"name\":\"test-2\"}",
+		},
 	}
 
 	for _, tc := range tests {
@@ -189,6 +203,27 @@ resource "humanitec_resource_definition" "dns_test" {
   driver_inputs = {
     values = {
       host = "%s"
+    }
+  }
+}
+`, host)
+}
+
+func testAccResourceDefinitionIngressResource(host string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "ingress_test" {
+  id          = "ingress-test"
+  name        = "ingress-test"
+  type        = "ingress"
+  driver_type = "humanitec/ingress"
+
+  driver_inputs = {
+    values = {
+      labels = jsonencode({
+				name = "%s"
+			})
+      api_version = "v1"
+			no_tls      = true
     }
   }
 }
@@ -352,6 +387,8 @@ func TestDriverInputToMap(t *testing.T) {
 		"refIntegerValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 		"objectValue":     "{\"nested\":\"value\"}",
 		"refObjectValue":  "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
+		"booleanValue":    "true",
+		"refBooleanValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 	})
 	if diags.HasError() {
 		assert.Fail("errors found", diags)
@@ -375,6 +412,12 @@ func TestDriverInputToMap(t *testing.T) {
 					"refObjectValue": map[string]interface{}{
 						"type": "object",
 					},
+					"booleanValue": map[string]interface{}{
+						"type": "boolean",
+					},
+					"refBooleanValue": map[string]interface{}{
+						"type": "boolean",
+					},
 				},
 			},
 		},
@@ -392,7 +435,9 @@ func TestDriverInputToMap(t *testing.T) {
 		"objectValue": map[string]interface{}{
 			"nested": "value",
 		},
-		"refObjectValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
+		"refObjectValue":  "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
+		"booleanValue":    true,
+		"refBooleanValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 	}
 	assert.Equal(expected, m)
 }
@@ -455,7 +500,9 @@ func TestParseMapInput(t *testing.T) {
 		"objectValue": map[string]interface{}{
 			"nested": "value",
 		},
-		"refObjectValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
+		"refObjectValue":  "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
+		"booleanValue":    true,
+		"refBooleanValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 	}
 	schema := map[string]interface{}{
 		"properties": map[string]interface{}{
@@ -476,6 +523,12 @@ func TestParseMapInput(t *testing.T) {
 					"refObjectValue": map[string]interface{}{
 						"type": "object",
 					},
+					"booleanValue": map[string]interface{}{
+						"type": "boolean",
+					},
+					"refBooleanValue": map[string]interface{}{
+						"type": "boolean",
+					},
 				},
 			},
 		},
@@ -492,6 +545,8 @@ func TestParseMapInput(t *testing.T) {
 		"refIntegerValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 		"objectValue":     "{\"nested\":\"value\"}",
 		"refObjectValue":  "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
+		"booleanValue":    "true",
+		"refBooleanValue": "${resources.k8s-cluster#k8s-cluster.outputs.credentials}",
 	}
 	assert.Equal(expected, m)
 }

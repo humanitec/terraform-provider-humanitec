@@ -213,6 +213,12 @@ func parseMapInput(input map[string]interface{}, inputSchema map[string]interfac
 				continue
 			}
 			inputMap[k] = strconv.FormatInt(int64(v.(float64)), 10)
+		case "boolean":
+			if isReference(v) {
+				inputMap[k] = v.(string)
+				continue
+			}
+			inputMap[k] = strconv.FormatBool(v.(bool))
 		case "object":
 			if isReference(v) {
 				inputMap[k] = v.(string)
@@ -379,10 +385,21 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 			}
 			intVar, err := strconv.Atoi(v)
 			if err != nil {
-				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to int: %s", k, v, err.Error()))
+				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to integer: %s", k, v, err.Error()))
 				continue
 			}
 			inputMap[k] = intVar
+		case "boolean":
+			if isReference(v) {
+				inputMap[k] = v
+				continue
+			}
+			booleanVar, err := strconv.ParseBool(v)
+			if err != nil {
+				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to boolean: %s", k, v, err.Error()))
+				continue
+			}
+			inputMap[k] = booleanVar
 		case "object":
 			if isReference(v) {
 				inputMap[k] = v
