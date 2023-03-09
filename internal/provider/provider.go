@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -27,6 +29,8 @@ type HumanitecProviderModel struct {
 	Host  types.String `tfsdk:"host"`
 	OrgID types.String `tfsdk:"org_id"`
 	Token types.String `tfsdk:"token"`
+
+	DisableSSLCertificateVerification types.Bool `tfsdk:"disable_ssl_certificate_verification"`
 }
 
 const (
@@ -58,6 +62,10 @@ func (p *HumanitecProvider) Schema(ctx context.Context, req provider.SchemaReque
 				MarkdownDescription: "Humanitec Token (or using the `HUMANITEC_TOKEN` environment variable)",
 				Optional:            true,
 				Sensitive:           true,
+			},
+			"disable_ssl_certificate_verification": schema.BoolAttribute{
+				MarkdownDescription: "Disables SSL certificate verification",
+				Optional:            true,
 			},
 		},
 	}
@@ -113,7 +121,18 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		// Not returning early allows the logic to collect all errors.
 	}
 
-	client, diags := NewHumanitecClient(host, token, p.version)
+	var doer *http.Client
+	if data.DisableSSLCertificateVerification.ValueBool() {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		doer = &http.Client{Transport: tr}
+	} else {
+		doer = &http.Client{}
+	}
+
+	client, diags := NewHumanitecClient(host, token, p.version, doer)
+
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
