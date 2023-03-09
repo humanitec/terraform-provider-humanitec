@@ -270,7 +270,7 @@ func (r *ResourceArtefactVersion) Update(ctx context.Context, req resource.Updat
 }
 
 func (r *ResourceArtefactVersion) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddWarning("Delete skipped", "Deleting an Artefact Version will only remove it from Terraform state but will not deleted it from Humanitec")
+	resp.Diagnostics.AddWarning("Delete skipped", "Deleting an Artefact Version will only remove the resource from the Terraform state, but it will not delete the resource from Humanitec")
 }
 
 func (r *ResourceArtefactVersion) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
