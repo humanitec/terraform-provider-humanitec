@@ -3,19 +3,25 @@
 page_title: "humanitec_artefact_version Resource - terraform-provider-humanitec"
 subcategory: ""
 description: |-
-  An ArtefactVersion is a collection of Modules that work together. When deployed, all Modules in an ArtefactVersion are deployed to the same namespace.
+    An Artefact Version represents a particular version of an Artefact that can be added to an Application.
 ---
 
 # humanitec_artefact_version (Resource)
 
-An ArtefactVersion is a collection of Modules that work together. When deployed, all Modules in an ArtefactVersion are deployed to the same namespace.
+An Artefact Version represents a particular version of an Artefact that can be added to an Application. This is often a reference to a container image within a container registry.
 
 ## Example Usage
 
 ```terraform
 resource "humanitec_artefact_version" "example" {
-  id   = "example"
-  name = "An example app"
+  name = "registry.example.com/my-frontend-app"
+  ref  = "refs/heads/main"
+
+  version = "latest"
+  commit  = "75ef9faee755c70589550b513ad881e5a603182c"
+
+  digest = "sha256:7f0b629cbb9d794b3daf19fcd686a30a039b47395545394dadc0574744996a87"
+  type   = "container"
 }
 ```
 
