@@ -27,7 +27,7 @@ func TestNewHumanitecClientRead(t *testing.T) {
 
 	ctx := context.Background()
 
-	humSvc, diags := NewHumanitecClient(srv.URL, token, "test")
+	humSvc, diags := NewHumanitecClient(srv.URL, token, "test", &http.Client{})
 	if diags.HasError() {
 		assert.Fail("errors found", diags)
 	}
@@ -56,7 +56,7 @@ func TestNewHumanitecClientWrite(t *testing.T) {
 
 	ctx := context.Background()
 
-	humSvc, diags := NewHumanitecClient(srv.URL, token, "test")
+	humSvc, diags := NewHumanitecClient(srv.URL, token, "test", &http.Client{})
 	if diags.HasError() {
 		assert.Fail("errors found", diags)
 	}

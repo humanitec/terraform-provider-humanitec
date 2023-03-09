@@ -23,6 +23,7 @@ provider "humanitec" {
 
 ### Optional
 
+- `disable_ssl_certificate_verification` (Boolean) Disables SSL certificate verification
 - `host` (String) Humanitec API host (or using the `HUMANITEC_HOST` environment variable)
 - `org_id` (String) Humanitec Organization ID (or using the `HUMANITEC_ORG_ID` environment variable)
 - `token` (String, Sensitive) Humanitec Token (or using the `HUMANITEC_TOKEN` environment variable)

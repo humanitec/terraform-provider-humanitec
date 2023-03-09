@@ -6,13 +6,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/humanitec/humanitec-go-autogen"
+	"github.com/humanitec/humanitec-go-autogen/client"
 )
 
 const (
 	app = "terraform-provider-humanitec"
 )
 
-func NewHumanitecClient(host, token, version string) (*humanitec.Client, diag.Diagnostics) {
+func NewHumanitecClient(host, token, version string, doer client.HttpRequestDoer) (*humanitec.Client, diag.Diagnostics) {
 	client, err := humanitec.NewClient(&humanitec.Config{
 		Token:       token,
 		URL:         host,
@@ -23,6 +24,7 @@ func NewHumanitecClient(host, token, version string) (*humanitec.Client, diag.Di
 		ResponseLogger: func(res *humanitec.ResponseDetails) {
 			tflog.Debug(res.Context, "api res", map[string]interface{}{"status": res.StatusCode, "body": res.Body})
 		},
+		Client: doer,
 	})
 
 	var diags diag.Diagnostics
