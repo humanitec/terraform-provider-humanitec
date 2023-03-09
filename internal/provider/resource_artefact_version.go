@@ -46,7 +46,7 @@ func (r *ResourceArtefactVersion) Metadata(ctx context.Context, req resource.Met
 
 func (r *ResourceArtefactVersion) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "An ArtefactVersion is a collection of Modules that work together. When deployed, all Modules in an ArtefactVersion are deployed to the same namespace.",
+		MarkdownDescription: "An Artefact Version represents a particular version of an Artefact that can be added to an Application. This is often a reference to a container image within a container registry.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
