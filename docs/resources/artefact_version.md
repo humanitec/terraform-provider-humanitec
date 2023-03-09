@@ -3,7 +3,7 @@
 page_title: "humanitec_artefact_version Resource - terraform-provider-humanitec"
 subcategory: ""
 description: |-
-  An Artefact Version represents a particular version of an Artefact that can be added to an Application.
+  An Artefact Version represents a particular version of an Artefact that can be added to an Application. This is often a reference to a container image within a container registry.
 ---
 
 # humanitec_artefact_version (Resource)
