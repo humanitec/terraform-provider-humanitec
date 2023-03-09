@@ -210,7 +210,7 @@ func (r *ResourceAccountResource) Update(ctx context.Context, req resource.Updat
 }
 
 func (r *ResourceAccountResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddWarning("Unsupported delete", "Deleting a Resource Accounts will only remove it from Terraform state but will not deleted it from Humanitec")
+	resp.Diagnostics.AddWarning("Unsupported delete", "Deleting a Resource Accounts will only remove the resource from the Terraform state, but it will not delete the resource from Humanitec")
 }
 
 func (r *ResourceAccountResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
