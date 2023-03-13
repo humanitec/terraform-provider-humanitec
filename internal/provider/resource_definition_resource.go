@@ -510,7 +510,7 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 	}
 
 	if httpResp.StatusCode() == 404 {
-		resp.Diagnostics.AddWarning("Resource definition already removed", fmt.Sprintf("The resource definition (%s) was deleted outisde Terraform", data.ID.ValueString()))
+		resp.Diagnostics.AddWarning("Resource definition not found", fmt.Sprintf("The resource definition (%s) was deleted outisde Terraform", data.ID.ValueString()))
 		resp.State.RemoveResource(ctx)
 		return
 	}
