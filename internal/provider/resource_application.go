@@ -137,8 +137,7 @@ func (r *ResourceApplication) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	//this code should be 404, bug in the API
-	if httpResp.StatusCode() == 403 {
+	if httpResp.StatusCode() == 404 {
 		resp.Diagnostics.AddWarning("Application not found", fmt.Sprintf("The app (%s) was deleted outside Terraform", data.ID.ValueString()))
 		resp.State.RemoveResource(ctx)
 		return
