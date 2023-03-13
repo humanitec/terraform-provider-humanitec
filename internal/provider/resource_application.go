@@ -137,6 +137,12 @@ func (r *ResourceApplication) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
+	if httpResp.StatusCode() == 404 {
+		resp.Diagnostics.AddWarning("Application not found", fmt.Sprintf("The app (%s) was deleted outside Terraform", data.ID.ValueString()))
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	if httpResp.StatusCode() != 200 {
 		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read application, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
