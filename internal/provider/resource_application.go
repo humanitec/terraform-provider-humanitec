@@ -167,6 +167,13 @@ func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
+	// Remove all active resource before removing the app
+	appID := data.ID.ValueString()
+	if err := deleteActiveAppResources(ctx, r.client, r.orgId, appID); err != nil {
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, err.Error())
+		return
+	}
+
 	httpResp, err := r.client.DeleteOrgsOrgIdAppsAppIdWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete application, got error: %s", err))
@@ -181,4 +188,36 @@ func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteReq
 
 func (r *ResourceApplication) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func deleteActiveAppResources(ctx context.Context, client *humanitec.Client, orgID, appID string) error {
+	envResp, err := client.GetOrgsOrgIdAppsAppIdEnvsWithResponse(ctx, orgID, appID)
+	if err != nil {
+		return fmt.Errorf("unable to read app envs, got error: %s", err)
+	}
+	if envResp.StatusCode() != 200 {
+		return fmt.Errorf("unable to read app envs, unexpected status code: %d, body: %s", envResp.StatusCode(), envResp.Body)
+	}
+
+	for _, env := range *envResp.JSON200 {
+		resResp, err := client.GetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesWithResponse(ctx, orgID, appID, env.Id)
+		if err != nil {
+			return fmt.Errorf("unable to read app env res, got error: %s", err)
+		}
+		if resResp.StatusCode() != 200 {
+			return fmt.Errorf("unable to read app env res, unexpected status code: %d, body: %s", resResp.StatusCode(), resResp.Body)
+		}
+
+		for _, res := range *resResp.JSON200 {
+			delResResp, err := client.DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdWithResponse(ctx, orgID, appID, env.Id, res.Type, res.ResId)
+			if err != nil {
+				return fmt.Errorf("unable to delete app env res, got error: %s", err)
+			}
+			if delResResp.StatusCode() != 204 {
+				return fmt.Errorf("unable to delete app env res, unexpected status code: %d, body: %s", delResResp.StatusCode(), delResResp.Body)
+			}
+		}
+	}
+
+	return nil
 }
