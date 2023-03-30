@@ -1,0 +1,1 @@
+terraform import humanitec_resource_definition_criteria.example resource_definition_id/criteria_id
