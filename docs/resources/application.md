@@ -29,7 +29,18 @@ resource "humanitec_application" "example" {
 
 ### Optional
 
+- `env` (Attributes) Initial environment to create. Will be `development` by default. (see [below for nested schema](#nestedatt--env))
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
+
+<a id="nestedatt--env"></a>
+### Nested Schema for `env`
+
+Required:
+
+- `id` (String) The ID the Environment is referenced as.
+- `name` (String) The Human-friendly name for the Environment.
+- `type` (String) The Environment Type. This is used for organizing and managing Environments.
+
 
 <a id="nestedatt--timeouts"></a>
 ### Nested Schema for `timeouts`

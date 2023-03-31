@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -35,10 +36,19 @@ type ResourceApplication struct {
 	orgId  string
 }
 
+// ApplicationEnvironmentModel describes the app env data model.
+type ApplicationEnvironmentModel struct {
+	ID   types.String `tfsdk:"id"`
+	Name types.String `tfsdk:"name"`
+	Type types.String `tfsdk:"type"`
+}
+
 // ApplicationModel describes the app data model.
 type ApplicationModel struct {
 	ID   types.String `tfsdk:"id"`
 	Name types.String `tfsdk:"name"`
+
+	Env *ApplicationEnvironmentModel `tfsdk:"env"`
 
 	Timeouts timeouts.Value `tfsdk:"timeouts"`
 }
@@ -64,6 +74,27 @@ func (r *ResourceApplication) Schema(ctx context.Context, req resource.SchemaReq
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"env": schema.SingleNestedAttribute{
+				MarkdownDescription: "Initial environment to create. Will be `development` by default.",
+				Optional:            true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
+				},
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						MarkdownDescription: "The ID the Environment is referenced as.",
+						Required:            true,
+					},
+					"name": schema.StringAttribute{
+						MarkdownDescription: "The Human-friendly name for the Environment.",
+						Required:            true,
+					},
+					"type": schema.StringAttribute{
+						MarkdownDescription: "The Environment Type. This is used for organizing and managing Environments.",
+						Required:            true,
+					},
 				},
 			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
@@ -113,9 +144,20 @@ func (r *ResourceApplication) Create(ctx context.Context, req resource.CreateReq
 	id := data.ID.ValueString()
 	name := data.Name.ValueString()
 
+	var env *client.EnvironmentBaseRequest
+
+	if data.Env != nil {
+		env = &client.EnvironmentBaseRequest{
+			Id:   data.Env.ID.ValueString(),
+			Name: data.Env.Name.ValueString(),
+			Type: data.Env.Type.ValueString(),
+		}
+	}
+
 	httpResp, err := r.client.PostOrgsOrgIdAppsWithResponse(ctx, r.orgId, client.PostOrgsOrgIdAppsJSONRequestBody{
 		Id:   id,
 		Name: name,
+		Env:  env,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create app, got error: %s", err))
