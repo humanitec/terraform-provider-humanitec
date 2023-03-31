@@ -27,6 +27,18 @@ resource "humanitec_application" "example" {
 - `id` (String) The ID which refers to a specific application.
 - `name` (String) The Human-friendly name for the Application.
 
+### Optional
+
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `delete` (String)
+- `read` (String)
+
 ## Import
 
 Import is supported using the following syntax:

@@ -112,7 +112,7 @@ func TestAccResourceDefinition(t *testing.T) {
 						ResourceName:            tc.resourceAttrName,
 						ImportState:             true,
 						ImportStateVerify:       true,
-						ImportStateVerifyIgnore: []string{"driver_inputs.secrets"},
+						ImportStateVerifyIgnore: []string{"driver_inputs.secrets", "force_delete"},
 					},
 					// Update and Read testing
 					{
@@ -250,7 +250,7 @@ func TestAccResourceDefinitionWithDefinition(t *testing.T) {
 				ResourceName:            "humanitec_resource_definition.s3_test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"driver_inputs.secrets"},
+				ImportStateVerifyIgnore: []string{"driver_inputs.secrets", "force_delete"},
 			},
 			// Update and Read testing
 			{

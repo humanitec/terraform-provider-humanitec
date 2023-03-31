@@ -95,9 +95,11 @@ resource "humanitec_resource_definition" "gke" {
 
 ### Optional
 
-- `criteria` (Attributes Set) The criteria to use when looking for a Resource Definition during the deployment. (see [below for nested schema](#nestedatt--criteria))
+- `criteria` (Attributes Set, Deprecated) The criteria to use when looking for a Resource Definition during the deployment. (see [below for nested schema](#nestedatt--criteria))
 - `driver_account` (String) Security account required by the driver.
 - `driver_inputs` (Attributes) Data that should be passed around split by sensitivity. (see [below for nested schema](#nestedatt--driver_inputs))
+- `force_delete` (Boolean) If set to `true`, will mark the Resource Definition for deletion, even if it affects existing Active Resources.
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 <a id="nestedatt--criteria"></a>
 ### Nested Schema for `criteria`
@@ -121,6 +123,14 @@ Optional:
 
 - `secrets` (Map of String, Sensitive) Secrets section of the data set.
 - `values` (Map of String) Values section of the data set. Passed around as-is.
+
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `delete` (String)
 
 ## Import
 

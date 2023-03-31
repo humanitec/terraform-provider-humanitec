@@ -22,7 +22,7 @@ func NewHumanitecClient(host, token, version string, doer client.HttpRequestDoer
 			tflog.Debug(req.Context, "api req", map[string]interface{}{"method": req.Method, "uri": req.URL.String(), "body": req.Body})
 		},
 		ResponseLogger: func(res *humanitec.ResponseDetails) {
-			tflog.Debug(res.Context, "api res", map[string]interface{}{"status": res.StatusCode, "body": res.Body})
+			tflog.Debug(res.Context, "api res", map[string]interface{}{"status": res.StatusCode, "body": string(res.Body)})
 		},
 		Client: doer,
 	})
