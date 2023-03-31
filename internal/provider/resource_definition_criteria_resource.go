@@ -4,13 +4,17 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
@@ -19,6 +23,8 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces
 var _ resource.Resource = &ResourceDefinitionCriteriaResource{}
 var _ resource.ResourceWithImportState = &ResourceDefinitionCriteriaResource{}
+
+var defaultResourceDefinitionCriteriaDeleteTimeout = 3 * time.Minute
 
 func NewResourceDefinitionCriteriaResource() resource.Resource {
 	return &ResourceDefinitionCriteriaResource{}
@@ -45,6 +51,9 @@ type ResourceDefinitionCriteriaResourceModel struct {
 	EnvID                types.String `tfsdk:"env_id"`
 	EnvType              types.String `tfsdk:"env_type"`
 	ResID                types.String `tfsdk:"res_id"`
+
+	ForceDelete types.Bool     `tfsdk:"force_delete"`
+	Timeouts    timeouts.Value `tfsdk:"timeouts"`
 }
 
 func (r *ResourceDefinitionCriteriaResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -95,6 +104,15 @@ func (r *ResourceDefinitionCriteriaResource) Schema(ctx context.Context, req res
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"force_delete": schema.BoolAttribute{
+				MarkdownDescription: "If set to `true`, the Matching Criteria is deleted immediately, even if this action affects existing Active Resources.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
+				Delete: true,
+			}),
 		},
 	}
 }
@@ -242,17 +260,34 @@ func (r *ResourceDefinitionCriteriaResource) Delete(ctx context.Context, req res
 		return
 	}
 
-	force := false
-	httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString(), data.ID.ValueString(), &client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdParams{
-		Force: &force,
-	})
-	if err != nil {
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete definition criteria, got error: %s", err))
+	deleteTimeout, diags := data.Timeouts.Create(ctx, defaultResourceDefinitionCriteriaDeleteTimeout)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if httpResp.StatusCode() != 204 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to delete definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+	force := data.ForceDelete.ValueBool()
+
+	err := retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
+		httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString(), data.ID.ValueString(), &client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdParams{
+			Force: &force,
+		})
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+
+		if httpResp.StatusCode() == 409 {
+			return retry.RetryableError(fmt.Errorf("resource definition criteria has still active resources, status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		}
+
+		if httpResp.StatusCode() != 204 {
+			return retry.NonRetryableError(fmt.Errorf("unable to delete definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		}
+
+		return nil
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete definition criteria, got error: %s", err))
 		return
 	}
 }

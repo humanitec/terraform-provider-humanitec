@@ -50,11 +50,20 @@ resource "humanitec_resource_definition_criteria" "example" {
 - `app_id` (String) The ID of the Application that the Resources should belong to.
 - `env_id` (String) The ID of the Environment that the Resources should belong to. If env_type is also set, it must match the Type of the Environment for the Criteria to match.
 - `env_type` (String) The Type of the Environment that the Resources should belong to. If env_id is also set, it must have an Environment Type that matches this parameter for the Criteria to match.
+- `force_delete` (Boolean) If set to `true`, the Matching Criteria is deleted immediately, even if this action affects existing Active Resources.
 - `res_id` (String) The ID of the Resource in the Deployment Set. The ID is normally a . separated path to the definition in the set, e.g. modules.my-module.externals.my-database.
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 ### Read-Only
 
 - `id` (String) Matching Criteria ID
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `delete` (String)
 
 ## Import
 

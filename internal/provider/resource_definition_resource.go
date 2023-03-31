@@ -6,14 +6,18 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
@@ -22,6 +26,8 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces
 var _ resource.Resource = &ResourceDefinitionResource{}
 var _ resource.ResourceWithImportState = &ResourceDefinitionResource{}
+
+var defaultResourceDefinitionDeleteTimeout = 3 * time.Minute
 
 func NewResourceDefinitionResource() resource.Resource {
 	return &ResourceDefinitionResource{}
@@ -64,6 +70,9 @@ type DefinitionResourceModel struct {
 	DriverAccount types.String                         `tfsdk:"driver_account"`
 	DriverInputs  *DefinitionResourceDriverInputsModel `tfsdk:"driver_inputs"`
 	Criteria      *[]DefinitionResourceCriteriaModel   `tfsdk:"criteria"`
+
+	ForceDelete types.Bool     `tfsdk:"force_delete"`
+	Timeouts    timeouts.Value `tfsdk:"timeouts"`
 }
 
 func (r *ResourceDefinitionResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -124,6 +133,7 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 			"criteria": schema.SetNestedAttribute{
 				MarkdownDescription: "The criteria to use when looking for a Resource Definition during the deployment.",
 				Optional:            true,
+				DeprecationMessage:  "Inline criteria management is deprecated and should be done using the dedicated humanitec_resource_definition_criteria resource instead",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -149,6 +159,15 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 					},
 				},
 			},
+			"force_delete": schema.BoolAttribute{
+				MarkdownDescription: "If set to `true`, will mark the Resource Definition for deletion, even if it affects existing Active Resources.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
+				Delete: true,
+			}),
 		},
 	}
 }
@@ -520,7 +539,7 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, *httpResp.JSON200.DriverType, *&httpResp.JSON200.Type)
+	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, *httpResp.JSON200.DriverType, httpResp.JSON200.Type)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -685,17 +704,34 @@ func (r *ResourceDefinitionResource) Delete(ctx context.Context, req resource.De
 		return
 	}
 
-	force := false
-	httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), data.ID.ValueString(), &client.DeleteOrgsOrgIdResourcesDefsDefIdParams{
-		Force: &force,
-	})
-	if err != nil {
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete definition, got error: %s", err))
+	deleteTimeout, diags := data.Timeouts.Create(ctx, defaultResourceDefinitionDeleteTimeout)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if httpResp.StatusCode() != 204 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to delete definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+	force := data.ForceDelete.ValueBool()
+
+	err := retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
+		httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), data.ID.ValueString(), &client.DeleteOrgsOrgIdResourcesDefsDefIdParams{
+			Force: &force,
+		})
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+
+		if httpResp.StatusCode() == 409 {
+			return retry.RetryableError(fmt.Errorf("resource definition has still active resources, status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		}
+
+		if httpResp.StatusCode() != 204 {
+			return retry.NonRetryableError(fmt.Errorf("unable to delete resource definition, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		}
+
+		return nil
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete resource definition, got error: %s", err))
 		return
 	}
 }

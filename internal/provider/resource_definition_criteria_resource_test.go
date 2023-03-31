@@ -61,7 +61,8 @@ func TestAccResourceDefinitionCriteria(t *testing.T) {
 
 							return fmt.Sprintf("s3-test/%s", criteria.Primary.ID), nil
 						},
-						ImportStateVerify: true,
+						ImportStateVerify:       true,
+						ImportStateVerifyIgnore: []string{"force_delete"},
 					},
 					// Update and Read testing
 					{

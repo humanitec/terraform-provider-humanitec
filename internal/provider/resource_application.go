@@ -3,13 +3,16 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
@@ -18,6 +21,9 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces
 var _ resource.Resource = &ResourceApplication{}
 var _ resource.ResourceWithImportState = &ResourceApplication{}
+
+var defaultApplicationReadTimeout = 2 * time.Minute
+var defaultApplicationDeleteTimeout = 2 * time.Minute
 
 func NewResourceApplication() resource.Resource {
 	return &ResourceApplication{}
@@ -33,6 +39,8 @@ type ResourceApplication struct {
 type ApplicationModel struct {
 	ID   types.String `tfsdk:"id"`
 	Name types.String `tfsdk:"name"`
+
+	Timeouts timeouts.Value `tfsdk:"timeouts"`
 }
 
 func (r *ResourceApplication) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -58,6 +66,10 @@ func (r *ResourceApplication) Schema(ctx context.Context, req resource.SchemaReq
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
+				Read:   true,
+				Delete: true,
+			}),
 		},
 	}
 }
@@ -131,20 +143,36 @@ func (r *ResourceApplication) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	httpResp, err := r.client.GetOrgsOrgIdAppsAppIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+	readTimeout, diags := data.Timeouts.Create(ctx, defaultApplicationReadTimeout)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var httpResp *client.GetOrgsOrgIdAppsAppIdResponse
+
+	err := retry.RetryContext(ctx, readTimeout, func() *retry.RetryError {
+		var err error
+
+		httpResp, err = r.client.GetOrgsOrgIdAppsAppIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+
+		if httpResp.StatusCode() == 404 {
+			resp.Diagnostics.AddWarning("Application not found", fmt.Sprintf("The app (%s) was deleted outside Terraform", data.ID.ValueString()))
+			resp.State.RemoveResource(ctx)
+			return nil
+		}
+
+		if httpResp.StatusCode() != 200 {
+			return retry.RetryableError(err)
+		}
+
+		return nil
+	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read application, got error: %s", err))
-		return
-	}
-
-	if httpResp.StatusCode() == 404 {
-		resp.Diagnostics.AddWarning("Application not found", fmt.Sprintf("The app (%s) was deleted outside Terraform", data.ID.ValueString()))
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
-	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read application, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 
@@ -174,14 +202,26 @@ func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	httpResp, err := r.client.DeleteOrgsOrgIdAppsAppIdWithResponse(ctx, r.orgId, data.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete application, got error: %s", err))
+	deleteTimeout, diags := data.Timeouts.Create(ctx, defaultApplicationDeleteTimeout)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if httpResp.StatusCode() != 204 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to delete application, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+	err := retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
+		httpResp, err := r.client.DeleteOrgsOrgIdAppsAppIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+
+		if httpResp.StatusCode() != 204 {
+			return retry.RetryableError(fmt.Errorf("unable to delete application, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		}
+
+		return nil
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read application, got error: %s", err))
 		return
 	}
 }
