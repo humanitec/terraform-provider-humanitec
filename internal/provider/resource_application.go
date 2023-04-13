@@ -59,7 +59,7 @@ func (r *ResourceApplication) Metadata(ctx context.Context, req resource.Metadat
 
 func (r *ResourceApplication) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "An Application is a collection of Modules that work together. When deployed, all Modules in an Application are deployed to the same namespace.",
+		MarkdownDescription: "An Application is a collection of Workloads that work together. When deployed, all Workloads in an Application are deployed to the same namespace.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

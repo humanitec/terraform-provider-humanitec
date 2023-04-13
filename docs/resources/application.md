@@ -3,12 +3,12 @@
 page_title: "humanitec_application Resource - terraform-provider-humanitec"
 subcategory: ""
 description: |-
-  An Application is a collection of Modules that work together. When deployed, all Modules in an Application are deployed to the same namespace.
+  An Application is a collection of Workloads that work together. When deployed, all Workloads in an Application are deployed to the same namespace.
 ---
 
 # humanitec_application (Resource)
 
-An Application is a collection of Modules that work together. When deployed, all Modules in an Application are deployed to the same namespace.
+An Application is a collection of Workloads that work together. When deployed, all Workloads in an Application are deployed to the same namespace.
 
 ## Example Usage
 
