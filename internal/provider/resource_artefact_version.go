@@ -244,22 +244,17 @@ func (r *ResourceArtefactVersion) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	artefacts := *artefactHttpResp.JSON200
 	artefactId := httpResp.JSON200.ArtefactId
-	var artefact *client.ArtefactResponse
-	for _, a := range artefacts {
-		if a.Id == artefactId {
-			artefact = &a
-			break
-		}
-	}
+	artefact, found := findInSlicePtr(artefactHttpResp.JSON200, func(a client.ArtefactResponse) bool {
+		return a.Id == artefactId
+	})
 
-	if artefact == nil {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read artefact, id (%s) not found in response, %v", artefactId, artefacts))
+	if !found {
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read artefact, id (%s) not found in response, %+v", artefactId, artefactHttpResp.JSON200))
 		return
 	}
 
-	parseArtefactVersionResponse(httpResp.JSON200, artefact, data)
+	parseArtefactVersionResponse(httpResp.JSON200, &artefact, data)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

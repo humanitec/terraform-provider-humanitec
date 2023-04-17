@@ -21,3 +21,22 @@ func valueAtPath[T any](input map[string]interface{}, path []string) (T, bool) {
 
 	return v, ok
 }
+
+func findInSlicePtr[T any](in *[]T, f func(T) bool) (T, bool) {
+	found := false
+	var element T
+
+	if in == nil {
+		return element, found
+	}
+
+	for _, e := range *in {
+		if f(e) {
+			found = true
+			element = e
+			break
+		}
+	}
+
+	return element, found
+}
