@@ -19,7 +19,7 @@ func NewHumanitecClient(host, token, version string, doer client.HttpRequestDoer
 		URL:         host,
 		InternalApp: fmt.Sprintf("%s/%s", app, version),
 		RequestLogger: func(req *humanitec.RequestDetails) {
-			tflog.Debug(req.Context, "api req", map[string]interface{}{"method": req.Method, "uri": req.URL.String(), "body": req.Body})
+			tflog.Debug(req.Context, "api req", map[string]interface{}{"method": req.Method, "uri": req.URL.String(), "body": string(req.Body)})
 		},
 		ResponseLogger: func(res *humanitec.ResponseDetails) {
 			tflog.Debug(res.Context, "api res", map[string]interface{}{"status": res.StatusCode, "body": string(res.Body)})
