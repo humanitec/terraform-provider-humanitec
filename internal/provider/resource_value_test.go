@@ -1,12 +1,16 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/humanitec/humanitec-go-autogen"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccResourceValue(t *testing.T) {
@@ -40,6 +44,54 @@ func TestAccResourceValue(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_value.app_val1", "description", "Example value changed"),
 				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceValueDeletedOutManually(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
+	key := "VAL_1"
+
+	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	token := os.Getenv("HUMANITEC_TOKEN")
+
+	var client *humanitec.Client
+	var err error
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+
+			client, err = NewHumanitecClient(humanitec.DefaultAPIHost, token, "test", nil)
+			assert.NoError(err)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceVALUETestAccResourceValue(appID, key, "Example value"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val1", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_val1", "description", "Example value"),
+					func(_ *terraform.State) error {
+						// Manually delete the value via the API
+						resp, err := client.DeleteOrgsOrgIdAppsAppIdValuesKeyWithResponse(ctx, orgID, appID, key)
+						if err != nil {
+							return err
+						}
+
+						if resp.StatusCode() != 204 {
+							return fmt.Errorf("expected status code 204, got %d, body: %s", resp.StatusCode(), string(resp.Body))
+						}
+
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
 			},
 			// Delete testing automatically occurs in TestCase
 		},
