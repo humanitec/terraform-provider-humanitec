@@ -27,12 +27,10 @@ func TestNewHumanitecClientRead(t *testing.T) {
 
 	ctx := context.Background()
 
-	humSvc, diags := NewHumanitecClient(srv.URL, token, "test", &http.Client{})
-	if diags.HasError() {
-		assert.Fail("errors found", diags)
-	}
+	humSvc, err := NewHumanitecClient(srv.URL, token, "test", &http.Client{})
+	assert.NoError(err)
 
-	_, err := humSvc.GetCurrentUser(ctx)
+	_, err = humSvc.GetCurrentUser(ctx)
 	assert.NoError(err)
 }
 
@@ -56,13 +54,11 @@ func TestNewHumanitecClientWrite(t *testing.T) {
 
 	ctx := context.Background()
 
-	humSvc, diags := NewHumanitecClient(srv.URL, token, "test", &http.Client{})
-	if diags.HasError() {
-		assert.Fail("errors found", diags)
-	}
+	humSvc, err := NewHumanitecClient(srv.URL, token, "test", &http.Client{})
+	assert.NoError(err)
 
 	name := "changed"
-	_, err := humSvc.PatchCurrentUser(ctx, client.PatchCurrentUserJSONRequestBody{
+	_, err = humSvc.PatchCurrentUser(ctx, client.PatchCurrentUserJSONRequestBody{
 		Name: &name,
 	})
 	assert.NoError(err)
