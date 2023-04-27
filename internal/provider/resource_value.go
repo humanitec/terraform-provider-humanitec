@@ -120,8 +120,12 @@ func (r *ResourceValue) Configure(ctx context.Context, req resource.ConfigureReq
 	r.orgId = resdata.OrgID
 }
 
-func parseValueResponse(res *client.ValueResponse, data *ValueModel) {
-	data.ID = types.StringValue(res.Key)
+func envValueIdPrefix(appID, envID string) string {
+	return strings.Join([]string{appID, envID}, "/")
+}
+
+func parseValueResponse(res *client.ValueResponse, data *ValueModel, idPrefix string) {
+	data.ID = types.StringValue(strings.Join([]string{idPrefix, res.Key}, "/"))
 	data.Key = types.StringValue(res.Key)
 	data.Description = types.StringValue(res.Description)
 	data.IsSecret = types.BoolValue(res.IsSecret)
@@ -144,6 +148,7 @@ func (r *ResourceValue) Create(ctx context.Context, req resource.CreateRequest, 
 	key := data.Key.ValueString()
 
 	var res *client.ValueResponse
+	var idPrefix string
 	if data.EnvID.IsNull() {
 		httpResp, err := r.client.PostOrgsOrgIdAppsAppIdValuesWithResponse(ctx, r.orgId, appID, client.PostOrgsOrgIdAppsAppIdValuesJSONRequestBody{
 			Key:         key,
@@ -161,6 +166,7 @@ func (r *ResourceValue) Create(ctx context.Context, req resource.CreateRequest, 
 			return
 		}
 		res = httpResp.JSON201
+		idPrefix = appID
 	} else {
 		envID := data.EnvID.ValueString()
 		httpResp, err := r.client.PostOrgsOrgIdAppsAppIdEnvsEnvIdValuesWithResponse(ctx, r.orgId, appID, envID, client.PostOrgsOrgIdAppsAppIdEnvsEnvIdValuesJSONRequestBody{
@@ -181,9 +187,10 @@ func (r *ResourceValue) Create(ctx context.Context, req resource.CreateRequest, 
 		}
 
 		res = httpResp.JSON201
+		idPrefix = envValueIdPrefix(appID, envID)
 	}
 
-	parseValueResponse(res, data)
+	parseValueResponse(res, data, idPrefix)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -199,9 +206,12 @@ func (r *ResourceValue) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
+	appID := data.AppID.ValueString()
+
 	var res *[]client.ValueResponse
+	var idPrefix string
 	if data.EnvID.IsNull() {
-		httpResp, err := r.client.GetOrgsOrgIdAppsAppIdValuesWithResponse(ctx, r.orgId, data.AppID.ValueString())
+		httpResp, err := r.client.GetOrgsOrgIdAppsAppIdValuesWithResponse(ctx, r.orgId, appID)
 		if err != nil {
 			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read value, got error: %s", err))
 			return
@@ -213,8 +223,10 @@ func (r *ResourceValue) Read(ctx context.Context, req resource.ReadRequest, resp
 		}
 
 		res = httpResp.JSON200
+		idPrefix = appID
 	} else {
-		httpResp, err := r.client.GetOrgsOrgIdAppsAppIdEnvsEnvIdValuesWithResponse(ctx, r.orgId, data.AppID.ValueString(), data.EnvID.ValueString())
+		envID := data.EnvID.ValueString()
+		httpResp, err := r.client.GetOrgsOrgIdAppsAppIdEnvsEnvIdValuesWithResponse(ctx, r.orgId, appID, envID)
 		if err != nil {
 			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read value, got error: %s", err))
 			return
@@ -226,6 +238,7 @@ func (r *ResourceValue) Read(ctx context.Context, req resource.ReadRequest, resp
 		}
 
 		res = httpResp.JSON200
+		idPrefix = envValueIdPrefix(appID, envID)
 	}
 
 	// TODO Ideally the API should allow to fetch a value by KEY
@@ -239,7 +252,7 @@ func (r *ResourceValue) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	parseValueResponse(&value, data)
+	parseValueResponse(&value, data, idPrefix)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -255,8 +268,10 @@ func (r *ResourceValue) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 
 	var res *client.ValueResponse
+	var idPrefix string
+	appID := data.AppID.ValueString()
 	if data.EnvID.IsNull() {
-		httpResp, err := r.client.PutOrgsOrgIdAppsAppIdValuesKeyWithResponse(ctx, r.orgId, data.AppID.ValueString(), data.Key.ValueString(), client.ValueEditPayloadRequest{
+		httpResp, err := r.client.PutOrgsOrgIdAppsAppIdValuesKeyWithResponse(ctx, r.orgId, appID, data.Key.ValueString(), client.ValueEditPayloadRequest{
 			Description: data.Description.ValueStringPointer(),
 			IsSecret:    data.IsSecret.ValueBoolPointer(),
 			Value:       data.Value.ValueStringPointer(),
@@ -272,8 +287,10 @@ func (r *ResourceValue) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 
 		res = httpResp.JSON200
+		idPrefix = appID
 	} else {
-		httpResp, err := r.client.PutOrgsOrgIdAppsAppIdEnvsEnvIdValuesKeyWithResponse(ctx, r.orgId, data.AppID.ValueString(), data.EnvID.ValueString(), data.Key.ValueString(), client.ValueEditPayloadRequest{
+		envID := data.EnvID.ValueString()
+		httpResp, err := r.client.PutOrgsOrgIdAppsAppIdEnvsEnvIdValuesKeyWithResponse(ctx, r.orgId, appID, envID, data.Key.ValueString(), client.ValueEditPayloadRequest{
 			Description: data.Description.ValueStringPointer(),
 			IsSecret:    data.IsSecret.ValueBoolPointer(),
 			Value:       data.Value.ValueStringPointer(),
@@ -289,9 +306,10 @@ func (r *ResourceValue) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 
 		res = httpResp.JSON200
+		idPrefix = envValueIdPrefix(appID, envID)
 	}
 
-	parseValueResponse(res, data)
+	parseValueResponse(res, data, idPrefix)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -347,13 +365,13 @@ func (r *ResourceValue) ImportState(ctx context.Context, req resource.ImportStat
 	}
 
 	if len(idParts) == 2 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("app_id"), idParts[0])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[1])...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("key"), idParts[1])...)
 	} else if len(idParts) == 3 {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("app_id"), idParts[0])...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("env_id"), idParts[1])...)
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[2])...)
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("key"), idParts[2])...)
 	} else {
 		resp.Diagnostics.AddError(
