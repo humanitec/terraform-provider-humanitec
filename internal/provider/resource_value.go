@@ -248,7 +248,8 @@ func (r *ResourceValue) Read(ctx context.Context, req resource.ReadRequest, resp
 	})
 
 	if !found {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read value, key (%s) not found in response, %+v", key, res))
+		resp.Diagnostics.AddWarning("Value not found", fmt.Sprintf("The value (%s) was deleted outside Terraform", key))
+		resp.State.RemoveResource(ctx)
 		return
 	}
 
