@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/humanitec/humanitec-go-autogen"
 )
 
 // Ensure HumanitecProvider satisfies various provider interfaces.
@@ -75,7 +76,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 	// Check environment variables
 	host := os.Getenv("HUMANITEC_HOST")
 	if host == "" {
-		host = "https://api.humanitec.io/"
+		host = humanitec.DefaultAPIHost
 	}
 
 	orgID := os.Getenv("HUMANITEC_ORG_ID")
@@ -131,9 +132,11 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		doer = &http.Client{}
 	}
 
-	client, diags := NewHumanitecClient(host, token, p.version, doer)
+	client, err := NewHumanitecClient(host, token, p.version, doer)
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to create Humanitec client", err.Error())
+	}
 
-	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

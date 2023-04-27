@@ -3,7 +3,6 @@ package provider
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
@@ -13,7 +12,7 @@ const (
 	app = "terraform-provider-humanitec"
 )
 
-func NewHumanitecClient(host, token, version string, doer client.HttpRequestDoer) (*humanitec.Client, diag.Diagnostics) {
+func NewHumanitecClient(host, token, version string, doer client.HttpRequestDoer) (*humanitec.Client, error) {
 	client, err := humanitec.NewClient(&humanitec.Config{
 		Token:       token,
 		URL:         host,
@@ -26,12 +25,9 @@ func NewHumanitecClient(host, token, version string, doer client.HttpRequestDoer
 		},
 		Client: doer,
 	})
-
-	var diags diag.Diagnostics
 	if err != nil {
-		diags.AddError("Unable to create Humanitec client", err.Error())
-		return nil, diags
+		return nil, err
 	}
 
-	return client, diags
+	return client, nil
 }
