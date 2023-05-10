@@ -247,15 +247,24 @@ func (r *ResourceDefinitionCriteriaResource) Read(ctx context.Context, req resou
 }
 
 func (r *ResourceDefinitionCriteriaResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data *ResourceDefinitionCriteriaResourceModel
+	var data, state *ResourceDefinitionCriteriaResourceModel
 
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 
-	// All attributes require a replacement, so no API calls here
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Update client-only attributes
+	state.ForceDelete = data.ForceDelete
+	state.Timeouts = data.Timeouts
+
+	// All other attributes require a replacement, so no API calls here
 
 	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *ResourceDefinitionCriteriaResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

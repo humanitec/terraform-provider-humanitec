@@ -33,6 +33,20 @@ func TestAccResourceDefinitionCriteria(t *testing.T) {
 			},
 			resourceAttrNameUpdateValue2: "my-app-2",
 		},
+		{
+			name: "WithForceDelete",
+			configCreate: func() string {
+				return testAccResourceDefinitionAndCriteriaResourceWithForceDelete("my-app-1", "false")
+			},
+			resourceAttrNameIDValue:      "s3-test",
+			resourceAttrNameUpdateKey:    "force_delete",
+			resourceAttrNameUpdateValue1: "false",
+			resourceAttrName:             "humanitec_resource_definition_criteria.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionAndCriteriaResourceWithForceDelete("my-app-1", "true")
+			},
+			resourceAttrNameUpdateValue2: "true",
+		},
 	}
 
 	for _, tc := range tests {
@@ -118,4 +132,33 @@ resource "humanitec_resource_definition_criteria" "s3_test" {
 
 }
 `, appID)
+}
+
+func testAccResourceDefinitionAndCriteriaResourceWithForceDelete(appID, forceDelete string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test" {
+  id          = "s3-test"
+  name        = "s3-test"
+  type        = "s3"
+  driver_type = "humanitec/s3"
+
+  driver_inputs = {
+    values = {
+      "region" = "us-east-1"
+    }
+  }
+
+	lifecycle {
+    ignore_changes = [
+      criteria
+    ]
+  }
+}
+
+resource "humanitec_resource_definition_criteria" "s3_test" {
+  resource_definition_id = humanitec_resource_definition.s3_test.id
+	app_id = "%s"
+	force_delete = %s
+}
+`, appID, forceDelete)
 }
