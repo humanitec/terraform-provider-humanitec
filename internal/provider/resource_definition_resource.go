@@ -704,7 +704,7 @@ func (r *ResourceDefinitionResource) Delete(ctx context.Context, req resource.De
 		return
 	}
 
-	deleteTimeout, diags := data.Timeouts.Create(ctx, defaultResourceDefinitionDeleteTimeout)
+	deleteTimeout, diags := data.Timeouts.Delete(ctx, defaultResourceDefinitionDeleteTimeout)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
