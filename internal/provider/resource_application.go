@@ -185,7 +185,7 @@ func (r *ResourceApplication) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	readTimeout, diags := data.Timeouts.Create(ctx, defaultApplicationReadTimeout)
+	readTimeout, diags := data.Timeouts.Read(ctx, defaultApplicationReadTimeout)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -248,7 +248,7 @@ func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	deleteTimeout, diags := data.Timeouts.Create(ctx, defaultApplicationDeleteTimeout)
+	deleteTimeout, diags := data.Timeouts.Delete(ctx, defaultApplicationDeleteTimeout)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
 	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
@@ -19,6 +22,8 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces
 var _ resource.Resource = &ResourceAccountResource{}
 var _ resource.ResourceWithImportState = &ResourceAccountResource{}
+
+var defaultResourceAccountDeleteTimeout = 3 * time.Minute
 
 func NewResourceAccountResource() resource.Resource {
 	return &ResourceAccountResource{}
@@ -36,6 +41,8 @@ type ResourceAccountModel struct {
 	Name        types.String `tfsdk:"name"`
 	Type        types.String `tfsdk:"type"`
 	Credentials types.String `tfsdk:"credentials"`
+
+	Timeouts timeouts.Value `tfsdk:"timeouts"`
 }
 
 func (r *ResourceAccountResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -69,6 +76,9 @@ func (r *ResourceAccountResource) Schema(ctx context.Context, req resource.Schem
 				MarkdownDescription: "Credentials associated with the account.",
 				Required:            true,
 			},
+			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
+				Delete: true,
+			}),
 		},
 	}
 }
@@ -210,7 +220,42 @@ func (r *ResourceAccountResource) Update(ctx context.Context, req resource.Updat
 }
 
 func (r *ResourceAccountResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddWarning("Unsupported delete", "Deleting a Resource Accounts will only remove the resource from the Terraform state, but it will not delete the resource from Humanitec")
+	var data *ResourceAccountModel
+
+	// Read Terraform prior state data into the model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	deleteTimeout, diags := data.Timeouts.Delete(ctx, defaultResourceAccountDeleteTimeout)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
+		httpResp, err := r.client.DeleteOrgsOrgIdResourcesAccountsAccIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+
+		if httpResp.StatusCode() == 409 {
+			return retry.RetryableError(fmt.Errorf("resource account is still in use, status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		}
+
+		if httpResp.StatusCode() != 204 {
+			return retry.NonRetryableError(fmt.Errorf("unable to delete resource account, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		}
+
+		return nil
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete resource account, got error: %s", err))
+		return
+	}
+
 }
 
 func (r *ResourceAccountResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
