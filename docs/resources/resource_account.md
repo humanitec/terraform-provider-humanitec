@@ -31,6 +31,17 @@ resource "humanitec_resource_account" "gcp_test" {
 - `name` (String) Display name.
 - `type` (String) The type of the account
 
+### Optional
+
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `delete` (String)
+
 ## Import
 
 Import is supported using the following syntax:
