@@ -277,7 +277,7 @@ func (r *ResourceDefinitionCriteriaResource) Delete(ctx context.Context, req res
 		return
 	}
 
-	deleteTimeout, diags := data.Timeouts.Create(ctx, defaultResourceDefinitionCriteriaDeleteTimeout)
+	deleteTimeout, diags := data.Timeouts.Delete(ctx, defaultResourceDefinitionCriteriaDeleteTimeout)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
