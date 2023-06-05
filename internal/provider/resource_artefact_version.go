@@ -139,15 +139,6 @@ func parseArtefactVersionResponse(res *client.ArtefactVersionResponse, artefactR
 	data.Version = setOptionalStringValue(data.Version, res.Version)
 }
 
-func strTypeToPtr(value types.String) *string {
-	if value.IsNull() {
-		return nil
-	}
-	val := value.ValueString()
-
-	return &val
-}
-
 func (r *ResourceArtefactVersion) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data *ArtefactVersionModel
 
@@ -159,12 +150,12 @@ func (r *ResourceArtefactVersion) Create(ctx context.Context, req resource.Creat
 	}
 
 	httpResp, err := r.client.PostOrgsOrgIdArtefactVersionsWithResponse(ctx, r.orgId, &client.PostOrgsOrgIdArtefactVersionsParams{}, client.PostOrgsOrgIdArtefactVersionsJSONRequestBody{
-		Commit:  strTypeToPtr(data.Commit),
-		Digest:  strTypeToPtr(data.Digest),
+		Commit:  data.Commit.ValueStringPointer(),
+		Digest:  data.Digest.ValueStringPointer(),
 		Name:    data.Name.ValueString(),
-		Ref:     strTypeToPtr(data.Ref),
+		Ref:     data.Ref.ValueStringPointer(),
 		Type:    data.Type.ValueString(),
-		Version: strTypeToPtr(data.Version),
+		Version: data.Version.ValueStringPointer(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create artefact version, got error: %s", err))

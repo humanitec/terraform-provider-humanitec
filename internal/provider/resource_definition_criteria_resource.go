@@ -156,10 +156,10 @@ func (r *ResourceDefinitionCriteriaResource) Create(ctx context.Context, req res
 	}
 
 	httpResp, err := r.client().PostOrgsOrgIdResourcesDefsDefIdCriteriaWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString(), client.PostOrgsOrgIdResourcesDefsDefIdCriteriaJSONRequestBody{
-		AppId:   optionalStringFromModel(data.AppID),
-		EnvId:   optionalStringFromModel(data.EnvID),
-		EnvType: optionalStringFromModel(data.EnvType),
-		ResId:   optionalStringFromModel(data.ResID),
+		AppId:   data.AppID.ValueStringPointer(),
+		EnvId:   data.EnvID.ValueStringPointer(),
+		EnvType: data.EnvType.ValueStringPointer(),
+		ResId:   data.ResID.ValueStringPointer(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource definition criteria, got error: %s", err))
