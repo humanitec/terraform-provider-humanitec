@@ -100,15 +100,9 @@ func (r *ResourceEnvironmentType) Create(ctx context.Context, req resource.Creat
 
 	id := data.ID.ValueString()
 
-	var description *string
-	if !data.Description.IsNull() {
-		val := data.Description.ValueString()
-		description = &val
-	}
-
 	httpResp, err := r.client.PostOrgsOrgIdEnvTypesWithResponse(ctx, r.orgId, client.PostOrgsOrgIdEnvTypesJSONRequestBody{
 		Id:          id,
-		Description: description,
+		Description: data.Description.ValueStringPointer(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create environment type, got error: %s", err))

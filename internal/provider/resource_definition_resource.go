@@ -326,16 +326,6 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	return diags
 }
 
-func optionalStringFromModel(input types.String) *string {
-	if input.IsNull() {
-		return nil
-	}
-
-	v := input.ValueString()
-
-	return &v
-}
-
 func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteriaRequest {
 	if data.Criteria == nil {
 		return nil
@@ -344,11 +334,11 @@ func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteria
 	criteria := []client.MatchingCriteriaRequest{}
 	for _, c := range *data.Criteria {
 		criteria = append(criteria, client.MatchingCriteriaRequest{
-			Id:      optionalStringFromModel(c.ID),
-			AppId:   optionalStringFromModel(c.AppID),
-			EnvId:   optionalStringFromModel(c.EnvID),
-			EnvType: optionalStringFromModel(c.EnvType),
-			ResId:   optionalStringFromModel(c.ResID),
+			Id:      c.ID.ValueStringPointer(),
+			AppId:   c.AppID.ValueStringPointer(),
+			EnvId:   c.EnvID.ValueStringPointer(),
+			EnvType: c.EnvType.ValueStringPointer(),
+			ResId:   c.ResID.ValueStringPointer(),
 		})
 	}
 
@@ -486,7 +476,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 
 	httpResp, err := r.client().PostOrgsOrgIdResourcesDefsWithResponse(ctx, r.orgId(), client.PostOrgsOrgIdResourcesDefsJSONRequestBody{
 		Criteria:      criteria,
-		DriverAccount: optionalStringFromModel(data.DriverAccount),
+		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
 		DriverType:    data.DriverType.ValueString(),
 		Id:            data.ID.ValueString(),
@@ -631,10 +621,10 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 	// Add criteria
 	for _, c := range addedCriteria {
 		httpResp, err := r.client().PostOrgsOrgIdResourcesDefsDefIdCriteriaWithResponse(ctx, r.orgId(), defID, client.PostOrgsOrgIdResourcesDefsDefIdCriteriaJSONRequestBody{
-			AppId:   optionalStringFromModel(c.AppID),
-			EnvId:   optionalStringFromModel(c.EnvID),
-			EnvType: optionalStringFromModel(c.EnvType),
-			ResId:   optionalStringFromModel(c.ResID),
+			AppId:   c.AppID.ValueStringPointer(),
+			EnvId:   c.EnvID.ValueStringPointer(),
+			EnvType: c.EnvType.ValueStringPointer(),
+			ResId:   c.ResID.ValueStringPointer(),
 		})
 		if err != nil {
 			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource definition criteria, got error: %s", err))
@@ -671,7 +661,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 	}
 
 	httpResp, err := r.client().PutOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), defID, client.PutOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
-		DriverAccount: optionalStringFromModel(data.DriverAccount),
+		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
 		Name:          name,
 	})
