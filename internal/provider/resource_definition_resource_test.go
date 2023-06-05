@@ -91,6 +91,20 @@ func TestAccResourceDefinition(t *testing.T) {
 			},
 			resourceAttrNameUpdateValue2: "{\"name\":\"test-2\"}",
 		},
+		{
+			name: "Provision",
+			configCreate: func() string {
+				return testAccResourceDefinitionProvisionResource("true")
+			},
+			resourceAttrNameIDValue:      "provision-test",
+			resourceAttrNameUpdateKey:    "provision.awspolicy.match_dependents",
+			resourceAttrNameUpdateValue1: "true",
+			resourceAttrName:             "humanitec_resource_definition.provision_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionProvisionResource("false")
+			},
+			resourceAttrNameUpdateValue2: "false",
+		},
 	}
 
 	for _, tc := range tests {
@@ -228,6 +242,29 @@ resource "humanitec_resource_definition" "ingress_test" {
   }
 }
 `, host)
+}
+
+func testAccResourceDefinitionProvisionResource(matchDependents string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "provision_test" {
+	id          = "provision-test"
+	name        = "provision-test"
+	type        = "s3"
+	driver_type = "humanitec/s3"
+	provision = {
+		"awspolicy" = {
+			is_dependent = true
+			match_dependents = %s
+		}
+	}
+
+	driver_inputs = {
+		values = {
+			"region" = "us-east-1"
+		}
+	}
+}
+`, matchDependents)
 }
 
 func TestAccResourceDefinitionWithDefinition(t *testing.T) {
