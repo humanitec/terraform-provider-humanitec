@@ -99,6 +99,7 @@ resource "humanitec_resource_definition" "gke" {
 - `driver_account` (String) Security account required by the driver.
 - `driver_inputs` (Attributes) Data that should be passed around split by sensitivity. (see [below for nested schema](#nestedatt--driver_inputs))
 - `force_delete` (Boolean) If set to `true`, will mark the Resource Definition for deletion, even if it affects existing Active Resources.
+- `provision` (Attributes Map) ProvisionDependencies defines resources which are needed to be co-provisioned with the current resource. (see [below for nested schema](#nestedatt--provision))
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 <a id="nestedatt--criteria"></a>
@@ -123,6 +124,15 @@ Optional:
 
 - `secrets` (Map of String, Sensitive) Secrets section of the data set.
 - `values` (Map of String) Values section of the data set. Passed around as-is.
+
+
+<a id="nestedatt--provision"></a>
+### Nested Schema for `provision`
+
+Optional:
+
+- `is_dependent` (Boolean) If the co-provisioned resource is dependent on the current one.
+- `match_dependents` (Boolean) If the resources dependant on the main resource, are also dependant on the co-provisioned one.
 
 
 <a id="nestedatt--timeouts"></a>
