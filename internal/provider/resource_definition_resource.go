@@ -61,15 +61,22 @@ type DefinitionResourceCriteriaModel struct {
 	ResID   types.String `tfsdk:"res_id"`
 }
 
+// DefinitionResourceProvisionModel describes the resource definition provision model.
+type DefinitionResourceProvisionModel struct {
+	IsDependant     types.Bool `tfsdk:"is_dependent"`
+	MatchDependents types.Bool `tfsdk:"match_dependents"`
+}
+
 // DefinitionResourceModel describes the resource data model.
 type DefinitionResourceModel struct {
-	ID            types.String                         `tfsdk:"id"`
-	Name          types.String                         `tfsdk:"name"`
-	Type          types.String                         `tfsdk:"type"`
-	DriverType    types.String                         `tfsdk:"driver_type"`
-	DriverAccount types.String                         `tfsdk:"driver_account"`
-	DriverInputs  *DefinitionResourceDriverInputsModel `tfsdk:"driver_inputs"`
-	Criteria      *[]DefinitionResourceCriteriaModel   `tfsdk:"criteria"`
+	ID            types.String                                 `tfsdk:"id"`
+	Name          types.String                                 `tfsdk:"name"`
+	Type          types.String                                 `tfsdk:"type"`
+	DriverType    types.String                                 `tfsdk:"driver_type"`
+	DriverAccount types.String                                 `tfsdk:"driver_account"`
+	DriverInputs  *DefinitionResourceDriverInputsModel         `tfsdk:"driver_inputs"`
+	Criteria      *[]DefinitionResourceCriteriaModel           `tfsdk:"criteria"`
+	Provision     *map[string]DefinitionResourceProvisionModel `tfsdk:"provision"`
 
 	ForceDelete types.Bool     `tfsdk:"force_delete"`
 	Timeouts    timeouts.Value `tfsdk:"timeouts"`
@@ -155,6 +162,24 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 						"res_id": schema.StringAttribute{
 							MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a . separated path to the definition in the set, e.g. modules.my-module.externals.my-database.",
 							Optional:            true,
+						},
+					},
+				},
+			},
+			"provision": schema.MapNestedAttribute{
+				MarkdownDescription: "ProvisionDependencies defines resources which are needed to be co-provisioned with the current resource.",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"is_dependent": schema.BoolAttribute{
+							MarkdownDescription: "If the co-provisioned resource is dependent on the current one.",
+							Optional:            true,
+						},
+						"match_dependents": schema.BoolAttribute{
+							MarkdownDescription: "If the resources dependant on the main resource, are also dependant on the co-provisioned one.",
+							Optional:            true,
+							Computed:            true,
+							Default:             booldefault.StaticBool(false),
 						},
 					},
 				},
@@ -276,6 +301,31 @@ func parseCriteriaInput(criteria *[]client.MatchingCriteriaResponse) *[]Definiti
 	return &data
 }
 
+func parseProvisionInput(provision *map[string]client.ProvisionDependenciesResponse) *map[string]DefinitionResourceProvisionModel {
+	if provision == nil {
+		return nil
+	}
+
+	data := make(map[string]DefinitionResourceProvisionModel, len(*provision))
+	for k, v := range *provision {
+		data[k] = DefinitionResourceProvisionModel{
+			IsDependant:     types.BoolValue(v.IsDependent),
+			MatchDependents: defaultFalseBoolValuePointer(v.MatchDependents),
+		}
+	}
+
+	return &data
+}
+
+// defaultFalseBoolValuePointer returns a types.Bool value of false if the pointer is nil, otherwise it returns the value of the pointer.
+func defaultFalseBoolValuePointer(b *bool) types.Bool {
+	if b == nil {
+		return types.BoolValue(false)
+	}
+
+	return types.BoolValue(*b)
+}
+
 func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[string]interface{}, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
@@ -285,6 +335,7 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	data.DriverType = parseOptionalString(res.DriverType)
 	data.DriverAccount = parseOptionalString(res.DriverAccount)
 	data.Criteria = parseCriteriaInput(res.Criteria)
+	data.Provision = parseProvisionInput(res.Provision)
 
 	driverInputs := res.DriverInputs
 
@@ -343,6 +394,23 @@ func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteria
 	}
 
 	return &criteria
+}
+
+func provisionFromModel(data *map[string]DefinitionResourceProvisionModel) *map[string]client.ProvisionDependenciesRequest {
+	if data == nil {
+		return nil
+	}
+
+	provision := make(map[string]client.ProvisionDependenciesRequest, len(*data))
+
+	for k, v := range *data {
+		provision[k] = client.ProvisionDependenciesRequest{
+			IsDependent:     v.IsDependant.ValueBoolPointer(),
+			MatchDependents: v.MatchDependents.ValueBoolPointer(),
+		}
+	}
+
+	return &provision
 }
 
 // isReference returns whether a value is a resource reference https://docs.humanitec.com/reference/concepts/resources/references
@@ -461,6 +529,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	criteria := criteriaFromModel(data)
+	provision := provisionFromModel(data.Provision)
 	driverType := data.DriverType.ValueString()
 	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
 	resp.Diagnostics.Append(diag...)
@@ -476,6 +545,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 
 	httpResp, err := r.client().PostOrgsOrgIdResourcesDefsWithResponse(ctx, r.orgId(), client.PostOrgsOrgIdResourcesDefsJSONRequestBody{
 		Criteria:      criteria,
+		Provision:     provision,
 		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
 		DriverType:    data.DriverType.ValueString(),
@@ -660,10 +730,13 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		}
 	}
 
+	provision := provisionFromModel(data.Provision)
+
 	httpResp, err := r.client().PutOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), defID, client.PutOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
 		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
 		Name:          name,
+		Provision:     provision,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read definition, got error: %s", err))
