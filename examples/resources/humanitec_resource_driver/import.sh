@@ -1,0 +1,1 @@
+terraform import humanitec_resource_driver.example driver_id

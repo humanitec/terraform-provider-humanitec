@@ -158,6 +158,7 @@ func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Res
 		NewResourceDefinitionCriteriaResource,
 		NewResourceDefinitionResource,
 		NewResourceEnvironmentType,
+		NewResourceResourceDriver,
 		NewResourceRule,
 		NewResourceValue,
 		NewResourceWebhook,
