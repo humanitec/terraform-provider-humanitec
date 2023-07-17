@@ -23,5 +23,3 @@ data "humanitec_source_ip_ranges" "main" {}
 
 - `cidr_blocks` (Set of String) Set of ipv4 CIDR blocks.
 - `id` (String) The ID of this resource.
-
-
