@@ -339,23 +339,19 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 
 	driverInputs := res.DriverInputs
 
-	if driverInputs != nil {
+	if driverInputs != nil && driverInputs.Values != nil {
+		valuesMap, diag := parseMapInput(*driverInputs.Values, driverInputSchema, "values")
+		diags.Append(diag...)
+
+		m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
+		diags.Append(diag...)
+
 		if data.DriverInputs == nil {
 			data.DriverInputs = &DefinitionResourceDriverInputsModel{
 				Secrets: types.MapNull(types.StringType),
 			}
 		}
-
-		if driverInputs.Values == nil {
-			data.DriverInputs.Values = types.MapNull(types.StringType)
-		} else {
-			valuesMap, diag := parseMapInput(*driverInputs.Values, driverInputSchema, "values")
-			diags.Append(diag...)
-
-			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
-			diags.Append(diag...)
-			data.DriverInputs.Values = m
-		}
+		data.DriverInputs.Values = m
 	}
 
 	if res.Criteria != nil {
@@ -499,6 +495,10 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 }
 
 func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
+	if data.DriverInputs == nil {
+		return nil, nil
+	}
+
 	var diag diag.Diagnostics
 
 	driverInputs := &client.ValuesSecretsRequest{}

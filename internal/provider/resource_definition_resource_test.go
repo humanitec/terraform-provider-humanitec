@@ -105,6 +105,20 @@ func TestAccResourceDefinition(t *testing.T) {
 			},
 			resourceAttrNameUpdateValue2: "false",
 		},
+		{
+			name: "k8s-logging",
+			configCreate: func() string {
+				return testAccResourceDefinitionK8sLoggingResource("test-1")
+			},
+			resourceAttrNameIDValue:      "k8s-logging-test",
+			resourceAttrNameUpdateKey:    "name",
+			resourceAttrNameUpdateValue1: "test-1",
+			resourceAttrName:             "humanitec_resource_definition.k8s_logging_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionK8sLoggingResource("test-2")
+			},
+			resourceAttrNameUpdateValue2: "test-2",
+		},
 	}
 
 	for _, tc := range tests {
@@ -242,6 +256,17 @@ resource "humanitec_resource_definition" "ingress_test" {
   }
 }
 `, host)
+}
+
+func testAccResourceDefinitionK8sLoggingResource(name string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "k8s_logging_test" {
+  id          = "k8s-logging-test"
+  name        = "%s"
+  type        = "logging"
+  driver_type = "humanitec/logging-k8s"
+}
+`, name)
 }
 
 func testAccResourceDefinitionProvisionResource(matchDependents string) string {
