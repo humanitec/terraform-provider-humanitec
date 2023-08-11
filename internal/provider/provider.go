@@ -154,10 +154,12 @@ func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Res
 	return []func() resource.Resource{
 		NewResourceAccountResource,
 		NewResourceApplication,
+		NewResourceApplicationUser,
 		NewResourceArtefactVersion,
 		NewResourceDefinitionCriteriaResource,
 		NewResourceDefinitionResource,
 		NewResourceEnvironmentType,
+		NewResourceEnvironmentTypeUser,
 		NewResourceResourceDriver,
 		NewResourceRule,
 		NewResourceValue,
