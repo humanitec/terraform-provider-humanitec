@@ -26,7 +26,7 @@ resource "humanitec_resource_account" "gcp_test" {
 
 ### Required
 
-- `credentials` (String) Credentials associated with the account.
+- `credentials` (String, Sensitive) Credentials associated with the account.
 - `id` (String) Unique identifier for the account (in scope of the organization it belongs to).
 - `name` (String) Display name.
 - `type` (String) The type of the account
