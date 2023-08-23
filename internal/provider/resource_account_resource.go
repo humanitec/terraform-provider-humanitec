@@ -75,6 +75,7 @@ func (r *ResourceAccountResource) Schema(ctx context.Context, req resource.Schem
 			"credentials": schema.StringAttribute{
 				MarkdownDescription: "Credentials associated with the account.",
 				Required:            true,
+				Sensitive:           true,
 			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Delete: true,
