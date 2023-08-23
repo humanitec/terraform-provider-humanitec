@@ -250,7 +250,6 @@ resource "humanitec_resource_definition" "ingress_test" {
       labels = jsonencode({
 				name = "%s"
 			})
-      api_version = "v1"
 			no_tls      = true
     }
   }
