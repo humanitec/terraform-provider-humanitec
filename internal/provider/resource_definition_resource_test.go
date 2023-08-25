@@ -27,13 +27,13 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionS3Resource("us-east-1")
 			},
 			resourceAttrNameIDValue:      "s3-test",
-			resourceAttrNameUpdateKey:    "driver_inputs.values.region",
-			resourceAttrNameUpdateValue1: "us-east-1",
+			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
+			resourceAttrNameUpdateValue1: "{\"region\":\"us-east-1\"}",
 			resourceAttrName:             "humanitec_resource_definition.s3_test",
 			configUpdate: func() string {
 				return testAccResourceDefinitionS3Resource("us-east-2")
 			},
-			resourceAttrNameUpdateValue2: "us-east-2",
+			resourceAttrNameUpdateValue2: "{\"region\":\"us-east-2\"}",
 		},
 		{
 			name: "Postgres",
@@ -41,13 +41,13 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionPostgresResource("test-1")
 			},
 			resourceAttrNameIDValue:      "postgres-test",
-			resourceAttrNameUpdateKey:    "driver_inputs.values.name",
-			resourceAttrNameUpdateValue1: "test-1",
+			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
+			resourceAttrNameUpdateValue1: "{\"host\":\"127.0.0.1\",\"instance\":\"test:test:test\",\"name\":\"test-1\",\"port\":5432}",
 			resourceAttrName:             "humanitec_resource_definition.postgres_test",
 			configUpdate: func() string {
 				return testAccResourceDefinitionPostgresResource("test-2")
 			},
-			resourceAttrNameUpdateValue2: "test-2",
+			resourceAttrNameUpdateValue2: "{\"host\":\"127.0.0.1\",\"instance\":\"test:test:test\",\"name\":\"test-2\",\"port\":5432}",
 		},
 		{
 			name: "GKE",
@@ -55,13 +55,13 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionGKEResource("test-1")
 			},
 			resourceAttrNameIDValue:      "gke-test",
-			resourceAttrNameUpdateKey:    "driver_inputs.values.name",
-			resourceAttrNameUpdateValue1: "test-1",
+			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
+			resourceAttrNameUpdateValue1: "{\"loadbalancer\":\"1.1.1.1\",\"name\":\"test-1\",\"project_id\":\"test\",\"zone\":\"europe-west3\"}",
 			resourceAttrName:             "humanitec_resource_definition.gke_test",
 			configUpdate: func() string {
 				return testAccResourceDefinitionGKEResource("test-2")
 			},
-			resourceAttrNameUpdateValue2: "test-2",
+			resourceAttrNameUpdateValue2: "{\"loadbalancer\":\"1.1.1.1\",\"name\":\"test-2\",\"project_id\":\"test\",\"zone\":\"europe-west3\"}",
 		},
 		{
 			name: "DNS",
@@ -69,13 +69,13 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionDNSStaticResource("test-1")
 			},
 			resourceAttrNameIDValue:      "dns-test",
-			resourceAttrNameUpdateKey:    "driver_inputs.values.host",
-			resourceAttrNameUpdateValue1: "test-1",
+			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
+			resourceAttrNameUpdateValue1: "{\"host\":\"test-1\"}",
 			resourceAttrName:             "humanitec_resource_definition.dns_test",
 			configUpdate: func() string {
 				return testAccResourceDefinitionDNSStaticResource("test-2")
 			},
-			resourceAttrNameUpdateValue2: "test-2",
+			resourceAttrNameUpdateValue2: "{\"host\":\"test-2\"}",
 		},
 		{
 			name: "Ingress",
@@ -83,13 +83,13 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionIngressResource("test-1")
 			},
 			resourceAttrNameIDValue:      "ingress-test",
-			resourceAttrNameUpdateKey:    "driver_inputs.values.labels",
-			resourceAttrNameUpdateValue1: "{\"name\":\"test-1\"}",
+			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
+			resourceAttrNameUpdateValue1: "{\"labels\":{\"name\":\"test-1\"},\"no_tls\":true}",
 			resourceAttrName:             "humanitec_resource_definition.ingress_test",
 			configUpdate: func() string {
 				return testAccResourceDefinitionIngressResource("test-2")
 			},
-			resourceAttrNameUpdateValue2: "{\"name\":\"test-2\"}",
+			resourceAttrNameUpdateValue2: "{\"labels\":{\"name\":\"test-2\"},\"no_tls\":true}",
 		},
 		{
 			name: "Provision",
@@ -165,9 +165,9 @@ resource "humanitec_resource_definition" "s3_test" {
   driver_type = "humanitec/s3"
 
   driver_inputs = {
-    values = {
+    values_string = jsonencode({
       "region" = "%s"
-    }
+    })
   }
 }
 `, region)
@@ -182,16 +182,16 @@ resource "humanitec_resource_definition" "postgres_test" {
   driver_type = "humanitec/postgres-cloudsql-static"
 
   driver_inputs = {
-    values = {
+    values_string = jsonencode({
       "instance" = "test:test:test"
       "name" = "%s"
       "host" = "127.0.0.1"
-      "port" = "5432"
-    }
-    secrets = {
+      "port" = 5432
+    })
+    secrets_string = jsonencode({
       "username" = "test"
       "password" = "test"
-    }
+    })
   }
 }
 `, name)
@@ -206,15 +206,15 @@ resource "humanitec_resource_definition" "gke_test" {
   driver_type = "humanitec/k8s-cluster-gke"
 
   driver_inputs = {
-    values = {
+    values_string = jsonencode({
       "loadbalancer" = "1.1.1.1"
       "name" = "%s"
       "project_id" = "test"
       "zone" = "europe-west3"
-    }
-    secrets = {
-      "credentials" = "{}"
-    }
+		})
+    secrets_string = jsonencode({
+      "credentials" = {}
+    })
   }
 }
 `, name)
@@ -229,9 +229,9 @@ resource "humanitec_resource_definition" "dns_test" {
   driver_type = "humanitec/static"
 
   driver_inputs = {
-    values = {
+    values_string = jsonencode({
       host = "%s"
-    }
+    })
   }
 }
 `, host)
@@ -246,12 +246,12 @@ resource "humanitec_resource_definition" "ingress_test" {
   driver_type = "humanitec/ingress"
 
   driver_inputs = {
-    values = {
-      labels = jsonencode({
+    values_string = jsonencode({
+      labels = {
 				name = "%s"
-			})
+			}
 			no_tls      = true
-    }
+    })
   }
 }
 `, host)
@@ -283,12 +283,61 @@ resource "humanitec_resource_definition" "provision_test" {
 	}
 
 	driver_inputs = {
-		values = {
+		values_string = jsonencode({
 			"region" = "us-east-1"
-		}
+		})
 	}
 }
 `, matchDependents)
+}
+
+func TestAccResourceDefinitionLegacyValues(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceDefinitionS3ResourceLegacy("us-east-1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_legacy_test", "id", "s3-legacy-test"),
+					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_legacy_test", "driver_inputs.values.region", "us-east-1"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName:            "humanitec_resource_definition.s3_legacy_test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"driver_inputs.secrets", "driver_inputs.values", "force_delete"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccResourceDefinitionS3ResourceLegacy("us-east-2"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_resource_definition.s3_legacy_test", "driver_inputs.values.region", "us-east-2"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccResourceDefinitionS3ResourceLegacy(region string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_legacy_test" {
+  id          = "s3-legacy-test"
+  name        = "s3-legacy-test"
+  type        = "s3"
+  driver_type = "humanitec/s3"
+
+  driver_inputs = {
+    values = {
+      "region" = "%s"
+    }
+  }
+}
+`, region)
 }
 
 func TestAccResourceDefinitionWithDefinition(t *testing.T) {
@@ -350,9 +399,9 @@ resource "humanitec_resource_definition" "s3_test" {
   driver_type = "humanitec/s3"
 
   driver_inputs = {
-    values = {
+		values_string = jsonencode({
       "region" = "us-east-1"
-    }
+    })
   }
 
 	criteria = [%s]
