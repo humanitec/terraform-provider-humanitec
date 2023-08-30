@@ -20,9 +20,9 @@ resource "humanitec_resource_definition" "s3" {
 
   driver_type = "humanitec/s3"
   driver_inputs = {
-    values = {
+    values_string = jsonencode({
       region = "us-east-1"
-    }
+    })
   }
 }
 
@@ -33,16 +33,16 @@ resource "humanitec_resource_definition" "postgres" {
   driver_type = "humanitec/postgres-cloudsql-static"
 
   driver_inputs = {
-    values = {
+    values_string = jsonencode({
       "instance" = "test:test:test"
       "name"     = "db-dev"
       "host"     = "127.0.0.1"
       "port"     = "5432"
-    }
-    secrets = {
+    })
+    secrets_string = jsonencode({
       "username" = "test"
       "password" = "test"
-    }
+    })
   }
 
   criteria = [
@@ -59,15 +59,15 @@ resource "humanitec_resource_definition" "gke" {
   driver_type = "humanitec/k8s-cluster-gke"
 
   driver_inputs = {
-    values = {
+    values_string = jsonencode({
       "loadbalancer" = "1.1.1.1"
       "name"         = "gke-dev"
       "project_id"   = "test"
       "zone"         = "europe-west3"
-    }
-    secrets = {
+    })
+    secrets_string = jsonencode({
       "credentials" = "{}"
-    }
+    })
   }
 
   criteria = [
@@ -122,8 +122,10 @@ Read-Only:
 
 Optional:
 
-- `secrets` (Map of String, Sensitive) Secrets section of the data set.
-- `values` (Map of String) Values section of the data set. Passed around as-is.
+- `secrets` (Map of String, Sensitive, Deprecated) Secrets section of the data set. Deprecated in favour of secrets_string.
+- `secrets_string` (String) JSON encoded secret data set. Passed around as-is.
+- `values` (Map of String, Deprecated) Values section of the data set. Passed around as-is. Deprecated in favour of values_string.
+- `values_string` (String) JSON encoded input data set. Passed around as-is.
 
 
 <a id="nestedatt--provision"></a>

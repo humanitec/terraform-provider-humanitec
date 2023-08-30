@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
@@ -50,6 +52,9 @@ func (r *ResourceDefinitionResource) orgId() string {
 type DefinitionResourceDriverInputsModel struct {
 	Values  types.Map `tfsdk:"values"`
 	Secrets types.Map `tfsdk:"secrets"`
+
+	ValuesString  types.String `tfsdk:"values_string"`
+	SecretsString types.String `tfsdk:"secrets_string"`
 }
 
 // DefinitionResourceCriteriaModel describes the resource data model.
@@ -125,15 +130,35 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"values": schema.MapAttribute{
-						MarkdownDescription: "Values section of the data set. Passed around as-is.",
+						MarkdownDescription: "Values section of the data set. Passed around as-is. Deprecated in favour of values_string.",
 						ElementType:         types.StringType,
 						Optional:            true,
+						DeprecationMessage:  "Use values_string instead",
+					},
+					"values_string": schema.StringAttribute{
+						MarkdownDescription: "JSON encoded input data set. Passed around as-is.",
+						Optional:            true,
+						Validators: []validator.String{
+							stringvalidator.ConflictsWith(path.Expressions{
+								path.MatchRelative().AtParent().AtName("values"),
+							}...),
+						},
 					},
 					"secrets": schema.MapAttribute{
-						MarkdownDescription: "Secrets section of the data set.",
+						MarkdownDescription: "Secrets section of the data set. Deprecated in favour of secrets_string.",
 						ElementType:         types.StringType,
 						Optional:            true,
 						Sensitive:           true,
+						DeprecationMessage:  "Use secrets_string instead",
+					},
+					"secrets_string": schema.StringAttribute{
+						MarkdownDescription: "JSON encoded secret data set. Passed around as-is.",
+						Optional:            true,
+						Validators: []validator.String{
+							stringvalidator.ConflictsWith(path.Expressions{
+								path.MatchRelative().AtParent().AtName("secrets"),
+							}...),
+						},
 					},
 				},
 			},
@@ -340,18 +365,31 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	driverInputs := res.DriverInputs
 
 	if driverInputs != nil && driverInputs.Values != nil {
-		valuesMap, diag := parseMapInput(*driverInputs.Values, driverInputSchema, "values")
-		diags.Append(diag...)
-
-		m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
-		diags.Append(diag...)
-
 		if data.DriverInputs == nil {
 			data.DriverInputs = &DefinitionResourceDriverInputsModel{
-				Secrets: types.MapNull(types.StringType),
+				Secrets:       types.MapNull(types.StringType),
+				SecretsString: types.StringNull(),
 			}
 		}
-		data.DriverInputs.Values = m
+
+		if !data.DriverInputs.Values.IsNull() {
+			// Support deprecated values field
+			valuesMap, diag := parseMapInput(*driverInputs.Values, driverInputSchema, "values")
+			diags.Append(diag...)
+
+			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
+			diags.Append(diag...)
+
+			data.DriverInputs.Values = m
+			data.DriverInputs.ValuesString = types.StringNull()
+		} else {
+			b, err := json.Marshal(driverInputs.Values)
+			if err != nil {
+				diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal values: %s", err.Error()))
+			}
+			data.DriverInputs.Values = types.MapNull(types.StringType)
+			data.DriverInputs.ValuesString = types.StringValue(string(b))
+		}
 	}
 
 	if res.Criteria != nil {
@@ -499,23 +537,43 @@ func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface
 		return nil, nil
 	}
 
-	var diag diag.Diagnostics
+	var diags diag.Diagnostics
 
 	driverInputs := &client.ValuesSecretsRequest{}
 
-	secrets, secretsDiag := driverInputToMap(ctx, data.DriverInputs.Secrets, inputSchema, "secrets")
-	diag.Append(secretsDiag...)
+	var secrets map[string]interface{}
+	var secretsDiag diag.Diagnostics
+
+	if !data.DriverInputs.Secrets.IsNull() {
+		// Support deprecated secrets field
+		secrets, secretsDiag = driverInputToMap(ctx, data.DriverInputs.Secrets, inputSchema, "secrets")
+	} else if !data.DriverInputs.SecretsString.IsNull() {
+		if err := json.Unmarshal([]byte(data.DriverInputs.SecretsString.ValueString()), &secrets); err != nil {
+			secretsDiag.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal secrets_string: %s", err.Error()))
+		}
+	}
+	diags.Append(secretsDiag...)
 	if secrets != nil {
 		driverInputs.Secrets = &secrets
 	}
 
-	values, valueDiag := driverInputToMap(ctx, data.DriverInputs.Values, inputSchema, "values")
-	diag.Append(valueDiag...)
+	var values map[string]interface{}
+	var valuesDiag diag.Diagnostics
+
+	if !data.DriverInputs.Values.IsNull() {
+		// Support deprecated values field
+		values, valuesDiag = driverInputToMap(ctx, data.DriverInputs.Values, inputSchema, "values")
+	} else if !data.DriverInputs.ValuesString.IsNull() {
+		if err := json.Unmarshal([]byte(data.DriverInputs.ValuesString.ValueString()), &values); err != nil {
+			valuesDiag.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal values_string: %s", err.Error()))
+		}
+	}
+	diags.Append(valuesDiag...)
 	if values != nil {
 		driverInputs.Values = &values
 	}
 
-	return driverInputs, diag
+	return driverInputs, diags
 }
 
 func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
