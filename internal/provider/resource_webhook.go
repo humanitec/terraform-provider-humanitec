@@ -176,6 +176,36 @@ func parseWebhookResponse(ctx context.Context, res *client.WebhookResponse, data
 	return diags
 }
 
+func parseWebhookUpdateResponse(ctx context.Context, res *client.WebhookUpdateResponse, data *WebhookModel) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+
+	data.Disabled = types.BoolPointerValue(res.Disabled)
+
+	headers, diag := types.MapValueFrom(ctx, types.StringType, res.Headers)
+	diags.Append(diag...)
+	data.Headers = headers
+
+	payload, diag := types.MapValueFrom(ctx, types.StringType, res.Payload)
+	diags.Append(diag...)
+	data.Payload = payload
+
+	triggers := []WebhookTriggerModel{}
+
+	if res.Triggers != nil {
+		for _, trigger := range *res.Triggers {
+			triggers = append(triggers, WebhookTriggerModel{
+				Scope: types.StringValue(trigger.Scope),
+				Type:  types.StringValue(trigger.Type),
+			})
+		}
+	}
+	data.Triggers = triggers
+
+	data.URL = types.StringPointerValue(res.Url)
+
+	return diags
+}
+
 // mapToJSONFieldRequest converts a tf string map to a client.JSONFieldRequest.
 func mapToJSONFieldRequest(ctx context.Context, tfmap basetypes.MapValue) (client.JSONFieldRequest, diag.Diagnostics) {
 	if tfmap.IsNull() {
@@ -322,7 +352,7 @@ func (r *ResourceWebhook) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	parseWebhookResponse(ctx, httpResp.JSON200, data)
+	parseWebhookUpdateResponse(ctx, httpResp.JSON200, data)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

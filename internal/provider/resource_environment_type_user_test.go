@@ -12,7 +12,6 @@ import (
 func TestAccResourceEnvironmentTypeUser(t *testing.T) {
 	id := fmt.Sprintf("env-type-user-test-%d", time.Now().UnixNano())
 	testUserID := "c0725726-0613-43d4-8398-907d07fba2e4"
-	eventualConsistentUserAPITimeout := 30 * time.Second
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -28,9 +27,6 @@ func TestAccResourceEnvironmentTypeUser(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				PreConfig: func() {
-					time.Sleep(eventualConsistentUserAPITimeout)
-				},
 				ResourceName:      "humanitec_resource_environment_type_user.another_user",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -43,10 +39,6 @@ func TestAccResourceEnvironmentTypeUser(t *testing.T) {
 				// At the moment there is nothing we can update :-/
 				Config: testAccResourceEnvironmentTypeUser(id, testUserID, "deployer"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					func(s *terraform.State) error {
-						time.Sleep(eventualConsistentUserAPITimeout)
-						return nil
-					},
 					resource.TestCheckResourceAttr("humanitec_resource_environment_type_user.another_user", "role", "deployer"),
 				),
 			},
