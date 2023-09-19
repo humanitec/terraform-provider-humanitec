@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
@@ -51,6 +52,7 @@ type ResourceDefinitionCriteriaResourceModel struct {
 	EnvID                types.String `tfsdk:"env_id"`
 	EnvType              types.String `tfsdk:"env_type"`
 	ResID                types.String `tfsdk:"res_id"`
+	Class                types.String `tfsdk:"class"`
 
 	ForceDelete types.Bool     `tfsdk:"force_delete"`
 	Timeouts    timeouts.Value `tfsdk:"timeouts"`
@@ -83,22 +85,31 @@ func (r *ResourceDefinitionCriteriaResource) Schema(ctx context.Context, req res
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"class": schema.StringAttribute{
+				MarkdownDescription: "The class of the Resource in the Deployment Set. Can not be empty, if is not defined, set to `default`.",
+				Computed:            true,
+				Optional:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Default: stringdefault.StaticString("default"),
+			},
 			"env_id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the Environment that the Resources should belong to. If env_type is also set, it must match the Type of the Environment for the Criteria to match.",
+				MarkdownDescription: "The ID of the Environment that the Resources should belong to. If `env_type` is also set, it must match the Type of the Environment for the Criteria to match.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"env_type": schema.StringAttribute{
-				MarkdownDescription: "The Type of the Environment that the Resources should belong to. If env_id is also set, it must have an Environment Type that matches this parameter for the Criteria to match.",
+				MarkdownDescription: "The Type of the Environment that the Resources should belong to. If `env_id` is also set, it must have an Environment Type that matches this parameter for the Criteria to match.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"res_id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a . separated path to the definition in the set, e.g. modules.my-module.externals.my-database.",
+				MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a `.` separated path to the definition in the set, e.g. `modules.my-module.externals.my-database`.",
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -143,6 +154,7 @@ func parseResourceDefinitionCriteriaResponse(res *client.MatchingCriteriaRespons
 	data.EnvID = parseOptionalString(res.EnvId)
 	data.EnvType = parseOptionalString(res.EnvType)
 	data.ResID = parseOptionalString(res.ResId)
+	data.Class = types.StringValue(res.Class)
 }
 
 func (r *ResourceDefinitionCriteriaResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -160,6 +172,7 @@ func (r *ResourceDefinitionCriteriaResource) Create(ctx context.Context, req res
 		EnvId:   data.EnvID.ValueStringPointer(),
 		EnvType: data.EnvType.ValueStringPointer(),
 		ResId:   data.ResID.ValueStringPointer(),
+		Class:   data.Class.ValueStringPointer(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource definition criteria, got error: %s", err))
