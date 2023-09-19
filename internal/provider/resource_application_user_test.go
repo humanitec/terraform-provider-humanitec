@@ -12,7 +12,6 @@ import (
 func TestAccResourceApplicationUser(t *testing.T) {
 	id := fmt.Sprintf("app-user-test-%d", time.Now().UnixNano())
 	testUserID := "1b305f15-f18f-4357-8311-01f88ed99d1b"
-	eventualConsistentUserAPITimeout := 30 * time.Second
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -28,9 +27,6 @@ func TestAccResourceApplicationUser(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				PreConfig: func() {
-					time.Sleep(eventualConsistentUserAPITimeout)
-				},
 				ResourceName:      "humanitec_resource_application_user.another_user",
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -42,10 +38,6 @@ func TestAccResourceApplicationUser(t *testing.T) {
 			{
 				Config: testAccResourceApplicationUser(id, testUserID, "developer"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					func(s *terraform.State) error {
-						time.Sleep(eventualConsistentUserAPITimeout)
-						return nil
-					},
 					resource.TestCheckResourceAttr("humanitec_resource_application_user.another_user", "role", "developer"),
 				),
 			},
