@@ -47,6 +47,20 @@ func TestAccResourceDefinitionCriteria(t *testing.T) {
 			},
 			resourceAttrNameUpdateValue2: "true",
 		},
+		{
+			name: "WithClass",
+			configCreate: func() string {
+				return testAccResourceDefinitionAndCriteriaResourceWithClass("my-app-1", "ephemeral")
+			},
+			resourceAttrNameIDValue:      "s3-test",
+			resourceAttrNameUpdateKey:    "class",
+			resourceAttrNameUpdateValue1: "ephemeral",
+			resourceAttrName:             "humanitec_resource_definition_criteria.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionAndCriteriaResourceWithClass("my-app-1", "forever")
+			},
+			resourceAttrNameUpdateValue2: "forever",
+		},
 	}
 
 	for _, tc := range tests {
@@ -118,12 +132,6 @@ resource "humanitec_resource_definition" "s3_test" {
       "region" = "us-east-1"
     }
   }
-
-	lifecycle {
-    ignore_changes = [
-      criteria
-    ]
-  }
 }
 
 resource "humanitec_resource_definition_criteria" "s3_test" {
@@ -147,12 +155,6 @@ resource "humanitec_resource_definition" "s3_test" {
       "region" = "us-east-1"
     }
   }
-
-	lifecycle {
-    ignore_changes = [
-      criteria
-    ]
-  }
 }
 
 resource "humanitec_resource_definition_criteria" "s3_test" {
@@ -161,4 +163,28 @@ resource "humanitec_resource_definition_criteria" "s3_test" {
 	force_delete = %s
 }
 `, appID, forceDelete)
+}
+
+func testAccResourceDefinitionAndCriteriaResourceWithClass(appID, class string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test" {
+  id          = "s3-test"
+  name        = "s3-test"
+  type        = "s3"
+  driver_type = "humanitec/s3"
+
+  driver_inputs = {
+    values = {
+      "region" = "us-east-1"
+    }
+  }
+}
+
+resource "humanitec_resource_definition_criteria" "s3_test" {
+  resource_definition_id = humanitec_resource_definition.s3_test.id
+	app_id = "%s"
+	class  = "%s"
+
+}
+`, appID, class)
 }

@@ -177,15 +177,15 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 							Optional:            true,
 						},
 						"env_id": schema.StringAttribute{
-							MarkdownDescription: "The ID of the Environment that the Resources should belong to. If env_type is also set, it must match the Type of the Environment for the Criteria to match.",
+							MarkdownDescription: "The ID of the Environment that the Resources should belong to. If `env_type` is also set, it must match the Type of the Environment for the Criteria to match.",
 							Optional:            true,
 						},
 						"env_type": schema.StringAttribute{
-							MarkdownDescription: "The Type of the Environment that the Resources should belong to. If env_id is also set, it must have an Environment Type that matches this parameter for the Criteria to match.",
+							MarkdownDescription: "The Type of the Environment that the Resources should belong to. If `env_id` is also set, it must have an Environment Type that matches this parameter for the Criteria to match.",
 							Optional:            true,
 						},
 						"res_id": schema.StringAttribute{
-							MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a . separated path to the definition in the set, e.g. modules.my-module.externals.my-database.",
+							MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a `.` separated path to the definition in the set, e.g. `modules.my-module.externals.my-database`.",
 							Optional:            true,
 						},
 					},

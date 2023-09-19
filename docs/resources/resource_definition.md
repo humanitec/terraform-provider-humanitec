@@ -108,9 +108,9 @@ resource "humanitec_resource_definition" "gke" {
 Optional:
 
 - `app_id` (String) The ID of the Application that the Resources should belong to.
-- `env_id` (String) The ID of the Environment that the Resources should belong to. If env_type is also set, it must match the Type of the Environment for the Criteria to match.
-- `env_type` (String) The Type of the Environment that the Resources should belong to. If env_id is also set, it must have an Environment Type that matches this parameter for the Criteria to match.
-- `res_id` (String) The ID of the Resource in the Deployment Set. The ID is normally a . separated path to the definition in the set, e.g. modules.my-module.externals.my-database.
+- `env_id` (String) The ID of the Environment that the Resources should belong to. If `env_type` is also set, it must match the Type of the Environment for the Criteria to match.
+- `env_type` (String) The Type of the Environment that the Resources should belong to. If `env_id` is also set, it must have an Environment Type that matches this parameter for the Criteria to match.
+- `res_id` (String) The ID of the Resource in the Deployment Set. The ID is normally a `.` separated path to the definition in the set, e.g. `modules.my-module.externals.my-database`.
 
 Read-Only:
 
