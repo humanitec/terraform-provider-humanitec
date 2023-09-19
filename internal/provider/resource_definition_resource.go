@@ -316,6 +316,7 @@ func parseCriteriaInput(criteria *[]client.MatchingCriteriaResponse) *[]Definiti
 
 	for _, c := range *criteria {
 		data = append(data, DefinitionResourceCriteriaModel{
+			ID:      types.StringValue(c.Id),
 			AppID:   parseOptionalString(c.AppId),
 			EnvID:   parseOptionalString(c.EnvId),
 			EnvType: parseOptionalString(c.EnvType),
@@ -359,7 +360,9 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	data.Type = types.StringValue(res.Type)
 	data.DriverType = parseOptionalString(res.DriverType)
 	data.DriverAccount = parseOptionalString(res.DriverAccount)
-	data.Criteria = parseCriteriaInput(res.Criteria)
+	if data.Criteria != nil {
+		data.Criteria = parseCriteriaInput(res.Criteria)
+	}
 	data.Provision = parseProvisionInput(res.Provision)
 
 	driverInputs := res.DriverInputs
@@ -390,22 +393,6 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 			data.DriverInputs.Values = types.MapNull(types.StringType)
 			data.DriverInputs.ValuesString = types.StringValue(string(b))
 		}
-	}
-
-	if res.Criteria != nil {
-		criteria := []DefinitionResourceCriteriaModel{}
-		for _, c := range *res.Criteria {
-			criteria = append(criteria, DefinitionResourceCriteriaModel{
-				ID:      types.StringValue(c.Id),
-				AppID:   parseOptionalString(c.AppId),
-				EnvID:   parseOptionalString(c.EnvId),
-				EnvType: parseOptionalString(c.EnvType),
-				ResID:   parseOptionalString(c.ResId),
-			})
-		}
-		data.Criteria = &criteria
-	} else {
-		data.Criteria = nil
 	}
 
 	return diags

@@ -357,10 +357,14 @@ func TestAccResourceDefinitionWithDefinition(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				ResourceName:            "humanitec_resource_definition.s3_test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"driver_inputs.secrets", "force_delete"},
+				ResourceName:      "humanitec_resource_definition.s3_test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"criteria", // won't be imported as the provider can't determine if the field is set
+					"driver_inputs.secrets",
+					"force_delete",
+				},
 			},
 			// Update and Read testing
 			{
