@@ -241,16 +241,16 @@ func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	// Remove all active resource before removing the app
-	appID := data.ID.ValueString()
-	if err := deleteActiveAppResources(ctx, r.client, r.orgId, appID); err != nil {
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, err.Error())
-		return
-	}
-
 	deleteTimeout, diags := data.Timeouts.Delete(ctx, defaultApplicationDeleteTimeout)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Remove all active resource before removing the app
+	appID := data.ID.ValueString()
+	if err := deleteActiveAppResources(ctx, deleteTimeout, r.client, r.orgId, appID); err != nil {
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, err.Error())
 		return
 	}
 
@@ -276,8 +276,8 @@ func (r *ResourceApplication) ImportState(ctx context.Context, req resource.Impo
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func deleteActiveAppResources(ctx context.Context, client *humanitec.Client, orgID, appID string) error {
-	envResp, err := client.GetOrgsOrgIdAppsAppIdEnvsWithResponse(ctx, orgID, appID)
+func deleteActiveAppResources(ctx context.Context, deleteTimeout time.Duration, humclient *humanitec.Client, orgID, appID string) error {
+	envResp, err := humclient.GetOrgsOrgIdAppsAppIdEnvsWithResponse(ctx, orgID, appID)
 	if err != nil {
 		return fmt.Errorf("unable to read app envs, got error: %s", err)
 	}
@@ -285,8 +285,10 @@ func deleteActiveAppResources(ctx context.Context, client *humanitec.Client, org
 		return fmt.Errorf("unable to read app envs, unexpected status code: %d, body: %s", envResp.StatusCode(), envResp.Body)
 	}
 
+	// Collect active resources from all envs
+	pendingDeletions := []client.ActiveResourceResponse{}
 	for _, env := range *envResp.JSON200 {
-		resResp, err := client.GetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesWithResponse(ctx, orgID, appID, env.Id)
+		resResp, err := humclient.GetOrgsOrgIdAppsAppIdEnvsEnvIdResourcesWithResponse(ctx, orgID, appID, env.Id)
 		if err != nil {
 			return fmt.Errorf("unable to read app env res, got error: %s", err)
 		}
@@ -294,16 +296,46 @@ func deleteActiveAppResources(ctx context.Context, client *humanitec.Client, org
 			return fmt.Errorf("unable to read app env res, unexpected status code: %d, body: %s", resResp.StatusCode(), resResp.Body)
 		}
 
-		for _, res := range *resResp.JSON200 {
-			delResResp, err := client.DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdWithResponse(ctx, orgID, appID, env.Id, res.Type, res.ResId)
-			if err != nil {
-				return fmt.Errorf("unable to delete app env res, got error: %s", err)
-			}
-			if delResResp.StatusCode() != 204 {
-				return fmt.Errorf("unable to delete app env res, unexpected status code: %d, body: %s", delResResp.StatusCode(), delResResp.Body)
-			}
+		pendingDeletions = append(pendingDeletions, *resResp.JSON200...)
+	}
+
+	// Delete active resources, retrying async delete operations
+	retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
+		stillPendingDeletions, err := deleteActiveResources(ctx, humclient, pendingDeletions)
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+
+		if len(stillPendingDeletions) == 0 {
+			return nil
+		}
+
+		pendingDeletions = stillPendingDeletions
+
+		return retry.RetryableError(fmt.Errorf("active resources are still pending deletion (%d)", len(pendingDeletions)))
+	})
+
+	return nil
+}
+
+func deleteActiveResources(ctx context.Context, humclient *humanitec.Client, res []client.ActiveResourceResponse) ([]client.ActiveResourceResponse, error) {
+	pendingDeletions := []client.ActiveResourceResponse{}
+	for _, res := range res {
+		delResResp, err := humclient.DeleteOrgsOrgIdAppsAppIdEnvsEnvIdResourcesTypeResIdWithResponse(ctx, res.OrgId, res.AppId, res.EnvId, res.Type, res.ResId)
+		if err != nil {
+			return nil, fmt.Errorf("unable to delete app env res, got error: %s", err)
+		}
+
+		switch delResResp.StatusCode() {
+		case 204:
+		case 404:
+			continue
+		case 202:
+			pendingDeletions = append(pendingDeletions, res)
+		default:
+			return nil, fmt.Errorf("unable to delete app env res, unexpected status code: %d, body: %s", delResResp.StatusCode(), delResResp.Body)
 		}
 	}
 
-	return nil
+	return pendingDeletions, nil
 }
