@@ -1,0 +1,1 @@
+terraform import humanitec_pipeline.example app_id/pipeline_id
