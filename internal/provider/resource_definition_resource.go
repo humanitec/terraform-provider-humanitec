@@ -519,14 +519,14 @@ func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[strin
 	return inputMap, diags
 }
 
-func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRequest, diag.Diagnostics) {
+func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRefsRequest, diag.Diagnostics) {
 	if data.DriverInputs == nil {
 		return nil, nil
 	}
 
 	var diags diag.Diagnostics
 
-	driverInputs := &client.ValuesSecretsRequest{}
+	driverInputs := &client.ValuesSecretsRefsRequest{}
 
 	var secrets map[string]interface{}
 	var secretsDiag diag.Diagnostics

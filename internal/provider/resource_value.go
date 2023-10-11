@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -12,6 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
@@ -41,6 +44,24 @@ type ValueModel struct {
 	Description types.String `tfsdk:"description"`
 	IsSecret    types.Bool   `tfsdk:"is_secret"`
 	Value       types.String `tfsdk:"value"`
+	SecretRef   types.Object `tfsdk:"secret_ref"`
+}
+
+// SecretRef describes a secret reference that might contain a secret value or a reference to an already stored secret.
+type SecretRef struct {
+	Ref     types.String `tfsdk:"ref"`
+	Store   types.String `tfsdk:"store"`
+	Version types.String `tfsdk:"version"`
+	Value   types.String `tfsdk:"value"`
+}
+
+func SecretRefAttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"ref":     types.StringType,
+		"store":   types.StringType,
+		"version": types.StringType,
+		"value":   types.StringType,
+	}
 }
 
 func (r *ResourceValue) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -91,9 +112,39 @@ func (r *ResourceValue) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"value": schema.StringAttribute{
-				MarkdownDescription: "The value that will be stored.",
-				Required:            true,
+				MarkdownDescription: "The value that will be stored. It can't be defined if secret_ref is defined.",
+				Optional:            true,
 				Sensitive:           true,
+			},
+			"secret_ref": schema.SingleNestedAttribute{
+				MarkdownDescription: "The sensitive value that will be stored in the primary organization store or a reference to a sensitive value already stored in one of the registered stores. It can't be defined if is_secret is false or value is defined.",
+				Optional:            true,
+				Computed:            true,
+				Attributes: map[string]schema.Attribute{
+					"ref": schema.StringAttribute{
+						MarkdownDescription: "Secret reference in the format of the target store. It can't be defined if value is defined.",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+					},
+					"store": schema.StringAttribute{
+						MarkdownDescription: "Secret Store id. This can't be humanitec (our internal Secret Store). It's mandatory if ref is defined and can't be used if value is defined.",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+					},
+					"version": schema.StringAttribute{
+						MarkdownDescription: "Only valid if ref is defined. It's the version of the secret as defined in the target store.",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+					},
+					"value": schema.StringAttribute{
+						MarkdownDescription: "Value to store in the secret store. It can't be defined if ref is defined.",
+						Optional:            true,
+						Sensitive:           true,
+					},
+				},
 			},
 		},
 	}
@@ -124,13 +175,38 @@ func envValueIdPrefix(appID, envID string) string {
 	return strings.Join([]string{appID, envID}, "/")
 }
 
-func parseValueResponse(res *client.ValueResponse, data *ValueModel, idPrefix string) {
+func parseValueResponse(ctx context.Context, res *client.ValueResponse, data *ValueModel, idPrefix string) {
 	data.ID = types.StringValue(strings.Join([]string{idPrefix, res.Key}, "/"))
 	data.Key = types.StringValue(res.Key)
 	data.Description = types.StringValue(res.Description)
 	data.IsSecret = types.BoolValue(res.IsSecret)
 	if !res.IsSecret {
 		data.Value = types.StringValue(res.Value)
+		data.SecretRef = basetypes.NewObjectNull(SecretRefAttributeTypes())
+	} else {
+		var secretRef SecretRef
+		if data.SecretRef.IsUnknown() {
+			secretRef = SecretRef{}
+		} else {
+			diags := data.SecretRef.As(ctx, &secretRef, basetypes.ObjectAsOptions{})
+			if diags.HasError() {
+				tflog.Debug(ctx, "can't populate secretRef from model", map[string]interface{}{"err": diags.Errors()})
+				return
+			}
+		}
+
+		secretRef.Ref = types.StringValue(*res.SecretKey)
+		secretRef.Store = types.StringValue(*res.SecretStoreId)
+		if res.SecretVersion != nil {
+			secretRef.Version = types.StringValue(*res.SecretVersion)
+		}
+
+		objectValue, diags := types.ObjectValueFrom(ctx, SecretRefAttributeTypes(), secretRef)
+		if diags.HasError() {
+			tflog.Debug(ctx, "can't decode object from secret ref", map[string]interface{}{"err": diags})
+			return
+		}
+		data.SecretRef = objectValue
 	}
 }
 
@@ -149,13 +225,35 @@ func (r *ResourceValue) Create(ctx context.Context, req resource.CreateRequest, 
 
 	var res *client.ValueResponse
 	var idPrefix string
+	var createPayload = client.PostOrgsOrgIdAppsAppIdValuesJSONRequestBody{
+		Key:         key,
+		Description: data.Description.ValueStringPointer(),
+		IsSecret:    data.IsSecret.ValueBoolPointer(),
+	}
+	if !data.Value.IsNull() {
+		createPayload.Value = data.Value.ValueStringPointer()
+	} else {
+		var secretRef SecretRef
+		diags := data.SecretRef.As(ctx, &secretRef, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			tflog.Debug(ctx, "can't populate secretRef from model", map[string]interface{}{"err": diags.Errors()})
+			return
+		}
+		if !secretRef.Value.IsNull() {
+			createPayload.SecretRef = &client.SecretReference{
+				Value: secretRef.Value.ValueStringPointer(),
+			}
+		} else {
+			createPayload.SecretRef = &client.SecretReference{
+				Ref:     secretRef.Ref.ValueStringPointer(),
+				Store:   secretRef.Store.ValueStringPointer(),
+				Version: secretRef.Version.ValueStringPointer(),
+			}
+		}
+	}
+
 	if data.EnvID.IsNull() {
-		httpResp, err := r.client.PostOrgsOrgIdAppsAppIdValuesWithResponse(ctx, r.orgId, appID, client.PostOrgsOrgIdAppsAppIdValuesJSONRequestBody{
-			Key:         key,
-			Description: data.Description.ValueStringPointer(),
-			IsSecret:    data.IsSecret.ValueBoolPointer(),
-			Value:       data.Value.ValueString(),
-		})
+		httpResp, err := r.client.PostOrgsOrgIdAppsAppIdValuesWithResponse(ctx, r.orgId, appID, createPayload)
 		if err != nil {
 			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create value, got error: %s", err))
 			return
@@ -169,12 +267,7 @@ func (r *ResourceValue) Create(ctx context.Context, req resource.CreateRequest, 
 		idPrefix = appID
 	} else {
 		envID := data.EnvID.ValueString()
-		httpResp, err := r.client.PostOrgsOrgIdAppsAppIdEnvsEnvIdValuesWithResponse(ctx, r.orgId, appID, envID, client.PostOrgsOrgIdAppsAppIdEnvsEnvIdValuesJSONRequestBody{
-			Key:         key,
-			Description: data.Description.ValueStringPointer(),
-			IsSecret:    data.IsSecret.ValueBoolPointer(),
-			Value:       data.Value.ValueString(),
-		})
+		httpResp, err := r.client.PostOrgsOrgIdAppsAppIdEnvsEnvIdValuesWithResponse(ctx, r.orgId, appID, envID, createPayload)
 
 		if err != nil {
 			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create value, got error: %s", err))
@@ -190,7 +283,7 @@ func (r *ResourceValue) Create(ctx context.Context, req resource.CreateRequest, 
 		idPrefix = envValueIdPrefix(appID, envID)
 	}
 
-	parseValueResponse(res, data, idPrefix)
+	parseValueResponse(ctx, res, data, idPrefix)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -253,7 +346,7 @@ func (r *ResourceValue) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	parseValueResponse(&value, data, idPrefix)
+	parseValueResponse(ctx, &value, data, idPrefix)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -271,12 +364,33 @@ func (r *ResourceValue) Update(ctx context.Context, req resource.UpdateRequest, 
 	var res *client.ValueResponse
 	var idPrefix string
 	appID := data.AppID.ValueString()
+	var editPayload = client.ValueEditPayloadRequest{
+		Description: data.Description.ValueStringPointer(),
+		IsSecret:    data.IsSecret.ValueBoolPointer(),
+	}
+	if !data.Value.IsNull() {
+		editPayload.Value = data.Value.ValueStringPointer()
+	} else {
+		var secretRef SecretRef
+		diags := data.SecretRef.As(ctx, &secretRef, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			tflog.Debug(ctx, "can't populate secretRef from model", map[string]interface{}{"err": diags.Errors()})
+			return
+		}
+		if !secretRef.Value.IsNull() {
+			editPayload.SecretRef = &client.SecretReference{
+				Value: secretRef.Value.ValueStringPointer(),
+			}
+		} else {
+			editPayload.SecretRef = &client.SecretReference{
+				Ref:     secretRef.Ref.ValueStringPointer(),
+				Store:   secretRef.Store.ValueStringPointer(),
+				Version: secretRef.Version.ValueStringPointer(),
+			}
+		}
+	}
 	if data.EnvID.IsNull() {
-		httpResp, err := r.client.PutOrgsOrgIdAppsAppIdValuesKeyWithResponse(ctx, r.orgId, appID, data.Key.ValueString(), client.ValueEditPayloadRequest{
-			Description: data.Description.ValueStringPointer(),
-			IsSecret:    data.IsSecret.ValueBoolPointer(),
-			Value:       data.Value.ValueStringPointer(),
-		})
+		httpResp, err := r.client.PutOrgsOrgIdAppsAppIdValuesKeyWithResponse(ctx, r.orgId, appID, data.Key.ValueString(), editPayload)
 		if err != nil {
 			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update value, got error: %s", err))
 			return
@@ -291,11 +405,7 @@ func (r *ResourceValue) Update(ctx context.Context, req resource.UpdateRequest, 
 		idPrefix = appID
 	} else {
 		envID := data.EnvID.ValueString()
-		httpResp, err := r.client.PutOrgsOrgIdAppsAppIdEnvsEnvIdValuesKeyWithResponse(ctx, r.orgId, appID, envID, data.Key.ValueString(), client.ValueEditPayloadRequest{
-			Description: data.Description.ValueStringPointer(),
-			IsSecret:    data.IsSecret.ValueBoolPointer(),
-			Value:       data.Value.ValueStringPointer(),
-		})
+		httpResp, err := r.client.PutOrgsOrgIdAppsAppIdEnvsEnvIdValuesKeyWithResponse(ctx, r.orgId, appID, envID, data.Key.ValueString(), editPayload)
 		if err != nil {
 			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update value, got error: %s", err))
 			return
@@ -310,7 +420,7 @@ func (r *ResourceValue) Update(ctx context.Context, req resource.UpdateRequest, 
 		idPrefix = envValueIdPrefix(appID, envID)
 	}
 
-	parseValueResponse(res, data, idPrefix)
+	parseValueResponse(ctx, res, data, idPrefix)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
