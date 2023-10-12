@@ -55,6 +55,7 @@ type DefinitionResourceDriverInputsModel struct {
 
 	ValuesString  types.String `tfsdk:"values_string"`
 	SecretsString types.String `tfsdk:"secrets_string"`
+	SecretRefs    types.String `tfsdk:"secret_refs"`
 }
 
 // DefinitionResourceCriteriaModel describes the resource data model.
@@ -145,20 +146,31 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 						},
 					},
 					"secrets": schema.MapAttribute{
-						MarkdownDescription: "Secrets section of the data set. Deprecated in favour of secrets_string.",
+						MarkdownDescription: "Secrets section of the data set. Deprecated in favour of secrets_string. Can't be used together with secret_refs.",
 						ElementType:         types.StringType,
 						Optional:            true,
 						Sensitive:           true,
 						DeprecationMessage:  "Use secrets_string instead",
 					},
 					"secrets_string": schema.StringAttribute{
-						MarkdownDescription: "JSON encoded secret data set. Passed around as-is.",
+						MarkdownDescription: "JSON encoded secret data set. Passed around as-is. Can't be used together with secret_refs.",
 						Optional:            true,
 						Validators: []validator.String{
 							stringvalidator.ConflictsWith(path.Expressions{
 								path.MatchRelative().AtParent().AtName("secrets"),
 							}...),
 						},
+					},
+					"secret_refs": schema.StringAttribute{
+						MarkdownDescription: "JSON encoded secrets section of the data set. They can hold sensitive information that will be stored in the primary organization secret store and replaced with the secret store paths when sent outside, or secret references stored in a defined secret store. Can't be used together with secrets.",
+						Optional:            true,
+						Computed:            true,
+						Validators: []validator.String{
+							stringvalidator.ConflictsWith(path.Expressions{
+								path.MatchRelative().AtParent().AtName("secrets_string"),
+							}...),
+						},
+						PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 				},
 			},
@@ -372,6 +384,7 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 			data.DriverInputs = &DefinitionResourceDriverInputsModel{
 				Secrets:       types.MapNull(types.StringType),
 				SecretsString: types.StringNull(),
+				SecretRefs:    types.StringNull(),
 			}
 		}
 
@@ -395,6 +408,17 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 		}
 	}
 
+	if data.DriverInputs != nil && data.DriverInputs.SecretRefs.IsUnknown() {
+		if driverInputs.SecretRefs == nil {
+			data.DriverInputs.SecretRefs = types.StringNull()
+		} else {
+			b, err := json.Marshal(driverInputs.SecretRefs)
+			if err != nil {
+				diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal secret_refs: %s", err.Error()))
+			}
+			data.DriverInputs.SecretRefs = types.StringValue(string(b))
+		}
+	}
 	return diags
 }
 
@@ -529,6 +553,7 @@ func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface
 	driverInputs := &client.ValuesSecretsRefsRequest{}
 
 	var secrets map[string]interface{}
+	var secretRefs map[string]interface{}
 	var secretsDiag diag.Diagnostics
 
 	if !data.DriverInputs.Secrets.IsNull() {
@@ -538,10 +563,17 @@ func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface
 		if err := json.Unmarshal([]byte(data.DriverInputs.SecretsString.ValueString()), &secrets); err != nil {
 			secretsDiag.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal secrets_string: %s", err.Error()))
 		}
+	} else if !data.DriverInputs.SecretRefs.IsUnknown() {
+		if err := json.Unmarshal([]byte(data.DriverInputs.SecretRefs.ValueString()), &secretRefs); err != nil {
+			secretsDiag.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal secret_refs: %s", err.Error()))
+		}
 	}
 	diags.Append(secretsDiag...)
 	if secrets != nil {
 		driverInputs.Secrets = &secrets
+	}
+	if secretRefs != nil {
+		driverInputs.SecretRefs = &secretRefs
 	}
 
 	var values map[string]interface{}
