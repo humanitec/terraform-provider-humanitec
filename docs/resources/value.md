@@ -57,15 +57,26 @@ resource "humanitec_value" "app_val1_ignore_value" {
 - `description` (String) A Human friendly description of what the Shared Value is.
 - `is_secret` (Boolean) Specified that the Shared Value contains a secret.
 - `key` (String) The unique key by which the Shared Value can be referenced.
-- `value` (String, Sensitive) The value that will be stored.
 
 ### Optional
 
 - `env_id` (String) The ID of the Environment that the Shared Value should belong to.
+- `secret_ref` (Attributes) The sensitive value that will be stored in the primary organization store or a reference to a sensitive value already stored in one of the registered stores. It can't be defined if is_secret is false or value is defined. (see [below for nested schema](#nestedatt--secret_ref))
+- `value` (String, Sensitive) The value that will be stored. It can't be defined if secret_ref is defined.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+<a id="nestedatt--secret_ref"></a>
+### Nested Schema for `secret_ref`
+
+Optional:
+
+- `ref` (String) Secret reference in the format of the target store. It can't be defined if value is defined.
+- `store` (String) Secret Store id. This can't be humanitec (our internal Secret Store). It's mandatory if ref is defined and can't be used if value is defined.
+- `value` (String, Sensitive) Value to store in the secret store. It can't be defined if ref is defined.
+- `version` (String) Only valid if ref is defined. It's the version of the secret as defined in the target store.
 
 ## Import
 

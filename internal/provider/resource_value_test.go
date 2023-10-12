@@ -50,10 +50,126 @@ func TestAccResourceValue(t *testing.T) {
 	})
 }
 
+func TestAccResourceValueWithSecretValue(t *testing.T) {
+	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
+	key := "VAL_SECRET_1"
+	orgID := os.Getenv("HUMANITEC_ORG_ID")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceVALUETestAccResourceValueSecret(appID, key, "Example value with secret"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName: "humanitec_value.app_val_with_secret",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return fmt.Sprintf("%s/%s", appID, key), nil
+				},
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_ref", "value"},
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceValueWithSecretValueSecretRefValue(t *testing.T) {
+	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
+	key := "VAL_SECRET_REF_VALUE_1"
+	orgID := os.Getenv("HUMANITEC_ORG_ID")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceVALUETestAccResourceValueSecretRefValue(appID, key, "Example value with secret set via secret reference value"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret set via secret reference value"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName: "humanitec_value.app_val_with_secret",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return fmt.Sprintf("%s/%s", appID, key), nil
+				},
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_ref"},
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceValueWithSecretRef(t *testing.T) {
+	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
+	key := "VAL_SECRET_REF_1"
+	orgID := os.Getenv("HUMANITEC_ORG_ID")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceVALUETestAccResourceValueSecretRef(appID, key, "path/to/secret", "Example value with secret reference"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret reference"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", "path/to/secret"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName: "humanitec_value.app_val_with_secret",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return fmt.Sprintf("%s/%s", appID, key), nil
+				},
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_ref"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccResourceVALUETestAccResourceValueSecretRef(appID, key, "path/to/secret/changed", "Example value with secret reference changed"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret reference changed"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", "path/to/secret/changed"),
+				),
+			},
+			// Update and Read testing
+			{
+				Config: testAccResourceVALUETestAccResourceValueSecret(appID, key, "Example value with secret reference updated with plain value"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret reference updated with plain value"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
 func TestAccResourceValueDeletedOutManually(t *testing.T) {
 	assert := assert.New(t)
 	ctx := context.Background()
 	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
+
 	key := "VAL_1"
 
 	orgID := os.Getenv("HUMANITEC_ORG_ID")
@@ -100,6 +216,7 @@ func TestAccResourceValueDeletedOutManually(t *testing.T) {
 
 func TestAccResourceValueWithEnv(t *testing.T) {
 	appID := fmt.Sprintf("val-test-app-env-%d", time.Now().UnixNano())
+
 	envID := "dev"
 	key := "VAL_1"
 
@@ -191,4 +308,64 @@ resource "humanitec_value" "app_env_val1" {
 	]
 }
 `, appID, envID, key, envID, key, description)
+}
+
+func testAccResourceVALUETestAccResourceValueSecretRef(appID, key, secretPath, description string) string {
+	return fmt.Sprintf(`
+resource "humanitec_application" "val_test" {
+	id   = "%s"
+	name = "val-test"
+}
+
+resource "humanitec_value" "app_val_with_secret" {
+	app_id = humanitec_application.val_test.id
+
+  key         = "%s"
+  description = "%s"
+  is_secret   = true
+  secret_ref  = {
+	ref     = "%s"
+	store   = "external-store-id"
+	version = "1"
+  }
+}
+`, appID, key, description, secretPath)
+}
+
+func testAccResourceVALUETestAccResourceValueSecret(appID, key, description string) string {
+	return fmt.Sprintf(`
+resource "humanitec_application" "val_test" {
+	id   = "%s"
+	name = "val-test"
+}
+
+resource "humanitec_value" "app_val_with_secret" {
+  app_id = humanitec_application.val_test.id
+
+  key         = "%s"
+  description = "%s"
+  is_secret   = true
+  value       = "secret"
+}
+`, appID, key, description)
+}
+
+func testAccResourceVALUETestAccResourceValueSecretRefValue(appID, key, description string) string {
+	return fmt.Sprintf(`
+resource "humanitec_application" "val_test" {
+	id   = "%s"
+	name = "val-test"
+}
+
+resource "humanitec_value" "app_val_with_secret" {
+  app_id = humanitec_application.val_test.id
+
+  key         = "%s"
+  description = "%s"
+  is_secret   = true
+  secret_ref  = {
+	  value = "secret"
+  }
+}
+`, appID, key, description)
 }
