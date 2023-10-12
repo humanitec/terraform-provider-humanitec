@@ -122,8 +122,9 @@ Read-Only:
 
 Optional:
 
-- `secrets` (Map of String, Sensitive, Deprecated) Secrets section of the data set. Deprecated in favour of secrets_string.
-- `secrets_string` (String) JSON encoded secret data set. Passed around as-is.
+- `secret_refs` (String) JSON encoded secrets section of the data set. They can hold sensitive information that will be stored in the primary organization secret store and replaced with the secret store paths when sent outside, or secret references stored in a defined secret store. Can't be used together with secrets.
+- `secrets` (Map of String, Sensitive, Deprecated) Secrets section of the data set. Deprecated in favour of secrets_string. Can't be used together with secret_refs.
+- `secrets_string` (String) JSON encoded secret data set. Passed around as-is. Can't be used together with secret_refs.
 - `values` (Map of String, Deprecated) Values section of the data set. Passed around as-is. Deprecated in favour of values_string.
 - `values_string` (String) JSON encoded input data set. Passed around as-is.
 

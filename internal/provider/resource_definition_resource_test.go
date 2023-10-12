@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -119,6 +120,48 @@ func TestAccResourceDefinition(t *testing.T) {
 			},
 			resourceAttrNameUpdateValue2: "test-2",
 		},
+		{
+			name: "S3 static - secret refs",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecretRefs("accessKeyIdPath1", "secretAccessKeyPath1")
+			},
+			resourceAttrNameIDValue:      "s3-test-with-secrets",
+			resourceAttrNameUpdateKey:    "driver_inputs.secret_refs",
+			resourceAttrNameUpdateValue1: "{\"aws_access_key_id\":{\"ref\":\"accessKeyIdPath1\",\"store\":\"external-secret-store\",\"version\":\"1\"},\"aws_secret_access_key\":{\"ref\":\"secretAccessKeyPath1\",\"store\":\"external-secret-store\",\"version\":\"1\"}}",
+			resourceAttrName:             "humanitec_resource_definition.s3_test_with_secrets",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecretRefs("accessKeyIdPath2", "secretAccessKeyPath2")
+			},
+			resourceAttrNameUpdateValue2: "{\"aws_access_key_id\":{\"ref\":\"accessKeyIdPath2\",\"store\":\"external-secret-store\",\"version\":\"1\"},\"aws_secret_access_key\":{\"ref\":\"secretAccessKeyPath2\",\"store\":\"external-secret-store\",\"version\":\"1\"}}",
+		},
+		{
+			name: "S3 static - secret ref set values",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecretRefValues("accessKeyId1", "secretAccessKey1")
+			},
+			resourceAttrNameIDValue:      "s3-test-with-secrets",
+			resourceAttrNameUpdateKey:    "driver_inputs.secret_refs",
+			resourceAttrNameUpdateValue1: "{\"aws_access_key_id\":{\"value\":\"accessKeyId1\"},\"aws_secret_access_key\":{\"value\":\"secretAccessKey1\"}}",
+			resourceAttrName:             "humanitec_resource_definition.s3_test_with_secrets",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecretRefValues("accessKeyId2", "secretAccessKey2")
+			},
+			resourceAttrNameUpdateValue2: "{\"aws_access_key_id\":{\"value\":\"accessKeyId2\"},\"aws_secret_access_key\":{\"value\":\"secretAccessKey2\"}}",
+		},
+		{
+			name: "S3 static - secrets",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecrets("accessKeyId1", "secretAccessKey1")
+			},
+			resourceAttrNameIDValue:      "s3-test-with-secrets",
+			resourceAttrNameUpdateKey:    "driver_inputs.secret_refs",
+			resourceAttrNameUpdateValue1: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
+			resourceAttrName:             "humanitec_resource_definition.s3_test_with_secrets",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecrets("accessKeyId2", "secretAccessKey2")
+			},
+			resourceAttrNameUpdateValue2: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
+		},
 	}
 
 	for _, tc := range tests {
@@ -140,7 +183,7 @@ func TestAccResourceDefinition(t *testing.T) {
 						ResourceName:            tc.resourceAttrName,
 						ImportState:             true,
 						ImportStateVerify:       true,
-						ImportStateVerifyIgnore: []string{"driver_inputs.secrets", "force_delete"},
+						ImportStateVerifyIgnore: []string{"driver_inputs.secrets_string", "driver_inputs.secret_refs", "force_delete"},
 					},
 					// Update and Read testing
 					{
@@ -291,6 +334,84 @@ resource "humanitec_resource_definition" "provision_test" {
 `, matchDependents)
 }
 
+func testAccResourceDefinitionS3taticResourceWithSecretRefs(awsAccessKeyIDPath, awsSecretAccessKeyPath string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test_with_secrets" {
+  id          = "s3-test-with-secrets"
+  name        = "s3-test-with-secrets"
+  type        = "s3"
+  driver_type = "humanitec/static"
+
+  driver_inputs = {
+	values_string = jsonencode({
+      "bucket" = "test-bucket"
+	  "region" = "us-east-1"
+    })
+    secret_refs = jsonencode({
+      "aws_access_key_id"     =  {
+        "ref"     = "%s"
+		"store"   = "external-secret-store"
+		"version" = "1"
+	  }
+      "aws_secret_access_key" = {
+        "ref"     = "%s"
+		"store"   = "external-secret-store"
+		"version" = "1"
+	  }
+    })
+  }
+}
+`, awsAccessKeyIDPath, awsSecretAccessKeyPath)
+}
+
+func testAccResourceDefinitionS3taticResourceWithSecretRefValues(awsAccessKeyIDValue, awsSecretAccessKeyValue string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test_with_secrets" {
+  id          = "s3-test-with-secrets"
+  name        = "s3-test-with-secrets"
+  type        = "s3"
+  driver_type = "humanitec/static"
+
+  driver_inputs = {
+	values_string = jsonencode({
+      "bucket" = "test-bucket"
+	  "region" = "us-east-1"
+    })
+    secret_refs = jsonencode({
+      "aws_access_key_id"     =  {
+        "value"     = "%s"
+	  }
+      "aws_secret_access_key" = {
+        "value"     = "%s"
+	  }
+    })
+  }
+}
+`, awsAccessKeyIDValue, awsSecretAccessKeyValue)
+}
+
+func testAccResourceDefinitionS3taticResourceWithSecrets(awsAccessKeyIDValue, awsSecretAccessKeyValue string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test_with_secrets" {
+  id          = "s3-test-with-secrets"
+  name        = "s3-test-with-secrets"
+  type        = "s3"
+  driver_type = "humanitec/static"
+
+  driver_inputs = {
+	values_string = jsonencode({
+      "bucket" = "test-bucket"
+	  "region" = "us-east-1"
+    })
+    secrets_string = jsonencode({
+      "aws_access_key_id"     = "%s"
+      "aws_secret_access_key" = "%s"
+    })
+  }
+}
+`, awsAccessKeyIDValue, awsSecretAccessKeyValue)
+}
+
 func TestAccResourceDefinitionLegacyValues(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -340,7 +461,7 @@ resource "humanitec_resource_definition" "s3_legacy_test" {
 `, region)
 }
 
-func TestAccResourceDefinitionWithDefinition(t *testing.T) {
+func TestAccResourceDefinitionWithCriteria(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -363,6 +484,7 @@ func TestAccResourceDefinitionWithDefinition(t *testing.T) {
 				ImportStateVerifyIgnore: []string{
 					"criteria", // won't be imported as the provider can't determine if the field is set
 					"driver_inputs.secrets",
+					"driver_inputs.secret_refs",
 					"force_delete",
 				},
 			},
@@ -703,4 +825,9 @@ func TestParseMapInput_UnexpectedType(t *testing.T) {
 
 	_, diags := parseMapInput(input, schema, "test")
 	assert.True(diags.HasError())
+}
+
+func getDefinitionSecretPath(defID string) string {
+	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	return fmt.Sprintf("orgs/%s/resources/defs/%s/driver_secrets", orgID, defID)
 }
