@@ -1,0 +1,283 @@
+package provider
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+)
+
+func TestAccResourceSecretStore_AzureKV(t *testing.T) {
+	id := fmt.Sprintf("azurekv-test-%d", time.Now().UnixNano())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccSecretStoreAzureKV(id, "tenant-id", "azurekv-url", "client-id", "client-secret"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "primary", "false"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.tenant_id", "tenant-id"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.url", "azurekv-url"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.auth.client_id", "client-id"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName: "humanitec_secretstore.secret_store_azurekv_test",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return id, nil
+				},
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"azurekv.auth"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccSecretStoreAzureKV(id, "tenant-id", "azurekv-url-changed", "client-id-changed", "client-secret"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "primary", "false"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.tenant_id", "tenant-id"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.url", "azurekv-url-changed"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.auth.client_id", "client-id-changed"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceSecretStore_Aws(t *testing.T) {
+	id := fmt.Sprintf("awssm-test-%d", time.Now().UnixNano())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccSecretStoreAwsSM(id, "access-key-id", "secret-access-key"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "primary", "true"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "awssm.region", "eu-central-1"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "awssm.auth.access_key_id", "access-key-id"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName: "humanitec_secretstore.secret_store_awssm_test",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return id, nil
+				},
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"awssm.auth"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccSecretStoreAwsSM(id, "access-key-id-changed", "secret-access-key"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "primary", "true"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "awssm.region", "eu-central-1"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "awssm.auth.access_key_id", "access-key-id-changed"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceSecretStore_GcpSM(t *testing.T) {
+	id := fmt.Sprintf("gcpsm-test-%d", time.Now().UnixNano())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccSecretStoreGcpSM(id, "gcp-project", "secret-access-key"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_gcpsm_test", "gcpsm.project_id", "gcp-project"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_gcpsm_test", "gcpsm.auth.secret_access_key", "secret-access-key"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName: "humanitec_secretstore.secret_store_gcpsm_test",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return id, nil
+				},
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"gcpsm.auth"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccSecretStoreGcpSM(id, "gcp-project-changed", "secret-access-key-changed"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_gcpsm_test", "gcpsm.project_id", "gcp-project-changed"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_gcpsm_test", "gcpsm.auth.secret_access_key", "secret-access-key-changed"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceSecretStore_Vault(t *testing.T) {
+	id := fmt.Sprintf("vault-test-%d", time.Now().UnixNano())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccSecretStoreVault(id, "vault-url", "vault-token", false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "primary", "false"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.url", "vault-url"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.auth.token", "vault-token"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName: "humanitec_secretstore.secret_store_vault_test",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return id, nil
+				},
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"vault.auth"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccSecretStoreVault(id, "vault-url-changed", "vault-token-changed", true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "primary", "true"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.url", "vault-url-changed"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.auth.token", "vault-token-changed"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceSecretStore_Vault_RemoveAuth(t *testing.T) {
+	id := fmt.Sprintf("vault-test-%d", time.Now().UnixNano())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccSecretStoreVault(id, "vault-url", "vault-token", false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "primary", "false"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.url", "vault-url"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.auth.token", "vault-token"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName: "humanitec_secretstore.secret_store_vault_test",
+				ImportState:  true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					return id, nil
+				},
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"vault.auth"},
+			},
+			// Update and Read testing
+			{
+				Config: testAccSecretStoreVaultNoAuth(id, "vault-url", false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "primary", "false"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.url", "vault-url"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.auth.%", "0"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccSecretStoreAzureKV(storeID, tenantID, url, clientID, clientSecret string) string {
+	return fmt.Sprintf(`
+	resource "humanitec_secretstore" "secret_store_azurekv_test" {
+		id      = "%s"
+		azurekv = {
+			tenant_id   = "%s"
+			url         = "%s"
+			auth = {
+				client_id     = "%s"
+				client_secret = "%s"
+			}
+		}
+	}
+`, storeID, tenantID, url, clientID, clientSecret)
+}
+
+func testAccSecretStoreAwsSM(storeID, accessKeyID, secretAccessKey string) string {
+	return fmt.Sprintf(`
+	resource "humanitec_secretstore" "secret_store_awssm_test" {
+		id      = "%s"
+		primary = true
+		awssm = {
+			region   = "eu-central-1"
+			auth = {
+				access_key_id     = "%s"
+				secret_access_key = "%s"
+			}
+		}
+	}
+`, storeID, accessKeyID, secretAccessKey)
+}
+
+func testAccSecretStoreGcpSM(storeID, projectID, secretAccessKey string) string {
+	return fmt.Sprintf(`
+	resource "humanitec_secretstore" "secret_store_gcpsm_test" {
+		id = "%s"
+		gcpsm = {
+			project_id   = "%s"
+			auth = {
+				secret_access_key = "%s"
+			}
+		}
+	}
+`, storeID, projectID, secretAccessKey)
+}
+
+func testAccSecretStoreVault(storeID, url, token string, primary bool) string {
+	return fmt.Sprintf(`
+	resource "humanitec_secretstore" "secret_store_vault_test" {
+		id      = "%s"
+		primary = %v
+		vault = {
+			url  = "%s"
+			auth = {
+				token = "%s"
+			}
+		}
+	}
+`, storeID, primary, url, token)
+}
+
+func testAccSecretStoreVaultNoAuth(storeID, url string, primary bool) string {
+	return fmt.Sprintf(`
+	resource "humanitec_secretstore" "secret_store_vault_test" {
+		id      = "%s"
+		primary = %v
+		vault = {
+			url  = "%s"
+		}
+	}
+`, storeID, primary, url)
+}
