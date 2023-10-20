@@ -170,7 +170,6 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 								path.MatchRelative().AtParent().AtName("secrets_string"),
 							}...),
 						},
-						PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 				},
 			},
