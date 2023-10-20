@@ -66,6 +66,7 @@ func TestAccResourceValueWithSecretValue(t *testing.T) {
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret"),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "1"),
 				),
 			},
 			// ImportState testing
@@ -77,6 +78,16 @@ func TestAccResourceValueWithSecretValue(t *testing.T) {
 				},
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"secret_ref", "value"},
+			},
+			// Update
+			{
+				Config: testAccResourceVALUETestAccResourceValueSecret(appID, key, "Example value with secret changed"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret changed"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "2"),
+				),
 			},
 			// Delete testing automatically occurs in TestCase
 		},
@@ -99,6 +110,7 @@ func TestAccResourceValueWithSecretValueSecretRefValue(t *testing.T) {
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret set via secret reference value"),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "1"),
 				),
 			},
 			// ImportState testing
@@ -110,6 +122,15 @@ func TestAccResourceValueWithSecretValueSecretRefValue(t *testing.T) {
 				},
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"secret_ref"},
+			},
+			{
+				Config: testAccResourceVALUETestAccResourceValueSecretRefValue(appID, key, "Example value with secret set via secret reference value changed"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret set via secret reference value changed"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "2"),
+				),
 			},
 			// Delete testing automatically occurs in TestCase
 		},
@@ -127,11 +148,12 @@ func TestAccResourceValueWithSecretRef(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccResourceVALUETestAccResourceValueSecretRef(appID, key, "path/to/secret", "Example value with secret reference"),
+				Config: testAccResourceVALUETestAccResourceValueSecretRef(appID, key, "path/to/secret", "Example value with secret reference", "1"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret reference"),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", "path/to/secret"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "1"),
 				),
 			},
 			// ImportState testing
@@ -146,10 +168,11 @@ func TestAccResourceValueWithSecretRef(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccResourceVALUETestAccResourceValueSecretRef(appID, key, "path/to/secret/changed", "Example value with secret reference changed"),
+				Config: testAccResourceVALUETestAccResourceValueSecretRef(appID, key, "path/to/secret/changed", "Example value with secret reference changed", "2"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret reference changed"),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", "path/to/secret/changed"),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "2"),
 				),
 			},
 			// Update and Read testing
@@ -310,7 +333,7 @@ resource "humanitec_value" "app_env_val1" {
 `, appID, envID, key, envID, key, description)
 }
 
-func testAccResourceVALUETestAccResourceValueSecretRef(appID, key, secretPath, description string) string {
+func testAccResourceVALUETestAccResourceValueSecretRef(appID, key, secretPath, description, version string) string {
 	return fmt.Sprintf(`
 resource "humanitec_application" "val_test" {
 	id   = "%s"
@@ -326,10 +349,10 @@ resource "humanitec_value" "app_val_with_secret" {
   secret_ref  = {
 	ref     = "%s"
 	store   = "external-store-id"
-	version = "1"
+	version = "%s"
   }
 }
-`, appID, key, description, secretPath)
+`, appID, key, description, secretPath, version)
 }
 
 func testAccResourceVALUETestAccResourceValueSecret(appID, key, description string) string {

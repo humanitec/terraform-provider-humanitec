@@ -10,11 +10,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
           cache: true
       - uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: '1.2.*'
+          terraform_version: "1.5.*"
           terraform_wrapper: false
       - run: make testacc
         env:
@@ -27,6 +27,6 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
           cache: true
       - run: go test -v -cover ./...
