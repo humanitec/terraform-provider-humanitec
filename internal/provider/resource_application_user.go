@@ -28,14 +28,19 @@ var (
 	defaultApplicationUserReadTimeout   = 30 * time.Second
 )
 
-func NewResourceApplicationUser() resource.Resource {
-	return &ResourceApplicationUser{}
+func NewResourceApplicationUser(deprecatedVersion bool) func() resource.Resource {
+	return func() resource.Resource {
+		return &ResourceApplicationUser{
+			deprecatedVersion: deprecatedVersion,
+		}
+	}
 }
 
 // ResourceDefinitionResource defines the resource implementation.
 type ResourceApplicationUser struct {
-	client *humanitec.Client
-	orgId  string
+	client            *humanitec.Client
+	orgId             string
+	deprecatedVersion bool
 }
 
 // DefinitionResourceModel describes the resource data model.
@@ -50,7 +55,11 @@ type ResourceApplicationUserModel struct {
 }
 
 func (r *ResourceApplicationUser) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_resource_application_user"
+	if r.deprecatedVersion {
+		resp.TypeName = req.ProviderTypeName + "_resource_application_user"
+	} else {
+		resp.TypeName = req.ProviderTypeName + "_application_user"
+	}
 }
 
 func (r *ResourceApplicationUser) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -87,6 +96,9 @@ func (r *ResourceApplicationUser) Schema(ctx context.Context, req resource.Schem
 				Read:   true,
 			}),
 		},
+	}
+	if r.deprecatedVersion {
+		resp.Schema.DeprecationMessage = "This resource is deprecated. Please use `humanitec_application_user` instead."
 	}
 }
 
