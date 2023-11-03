@@ -29,7 +29,7 @@ import (
 var _ resource.Resource = &ResourceDefinitionResource{}
 var _ resource.ResourceWithImportState = &ResourceDefinitionResource{}
 
-var defaultResourceDefinitionDeleteTimeout = 3 * time.Minute
+var defaultResourceDefinitionDeleteTimeout = 10 * time.Minute
 
 func NewResourceDefinitionResource() resource.Resource {
 	return &ResourceDefinitionResource{}
