@@ -25,7 +25,7 @@ import (
 var _ resource.Resource = &ResourceDefinitionCriteriaResource{}
 var _ resource.ResourceWithImportState = &ResourceDefinitionCriteriaResource{}
 
-var defaultResourceDefinitionCriteriaDeleteTimeout = 3 * time.Minute
+var defaultResourceDefinitionCriteriaDeleteTimeout = 10 * time.Minute
 
 func NewResourceDefinitionCriteriaResource() resource.Resource {
 	return &ResourceDefinitionCriteriaResource{}
