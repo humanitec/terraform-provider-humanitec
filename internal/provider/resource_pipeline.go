@@ -122,7 +122,7 @@ func (r *ResourcePipeline) Create(ctx context.Context, req resource.CreateReques
 	appID := data.AppID.ValueString()
 	definition := data.Definition.ValueString()
 
-	var pipeline *client.PipelineResponse
+	var pipeline *client.Pipeline
 	createPipelineResp, err := r.client.CreatePipelineWithBodyWithResponse(ctx, r.orgID, appID, "application/x-yaml", strings.NewReader(definition))
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create pipeline, got error: %s", err))
@@ -165,7 +165,7 @@ func (r *ResourcePipeline) Read(ctx context.Context, req resource.ReadRequest, r
 	appID := data.AppID.ValueString()
 	id := data.ID.ValueString()
 
-	var pipeline *client.PipelineResponse
+	var pipeline *client.Pipeline
 	getPipelineResp, err := r.client.GetPipelineWithResponse(ctx, r.orgID, appID, id, &client.GetPipelineParams{})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to get pipeline, got error: %s", err))
@@ -190,7 +190,7 @@ func (r *ResourcePipeline) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	contentType := "application/x.humanitec-pipelines-v1.0+yaml"
-	getPipelineDefinitionResp, err := r.client.GetPipelineSchemaWithResponse(ctx, r.orgID, appID, id, &client.GetPipelineSchemaParams{
+	getPipelineDefinitionResp, err := r.client.GetPipelineDefinitionWithResponse(ctx, r.orgID, appID, id, &client.GetPipelineDefinitionParams{
 		Accept: &contentType,
 	})
 	if err != nil {
@@ -224,7 +224,7 @@ func (r *ResourcePipeline) Update(ctx context.Context, req resource.UpdateReques
 	id := state.ID.ValueString()
 	definition := data.Definition.ValueString()
 
-	var pipeline *client.PipelineResponse
+	var pipeline *client.Pipeline
 	updatePipelineResp, err := r.client.UpdatePipelineWithBodyWithResponse(ctx, r.orgID, appID, id, &client.UpdatePipelineParams{}, "application/x-yaml", strings.NewReader(definition))
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update pipeline, got error: %s", err))
@@ -318,7 +318,7 @@ func (r *ResourcePipeline) ImportState(ctx context.Context, req resource.ImportS
 	}
 }
 
-func parsePipelineResponse(ctx context.Context, res *client.PipelineResponse, data *PipelineModel) diag.Diagnostics {
+func parsePipelineResponse(ctx context.Context, res *client.Pipeline, data *PipelineModel) diag.Diagnostics {
 	totalDiags := diag.Diagnostics{}
 
 	data.AppID = types.StringValue(res.AppId)
