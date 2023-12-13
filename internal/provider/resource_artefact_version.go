@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/humanitec/humanitec-go-autogen"
@@ -63,6 +65,9 @@ func (r *ResourceArtefactVersion) Schema(ctx context.Context, req resource.Schem
 			"type": schema.StringAttribute{
 				MarkdownDescription: "The Artefact Version type.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("container"),
+				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -128,15 +133,17 @@ func setOptionalStringValue(target types.String, source string) types.String {
 	return types.StringValue(source)
 }
 
-func parseArtefactVersionResponse(res *client.ArtefactVersionResponse, artefactRes *client.ArtefactResponse, data *ArtefactVersionModel) {
+func parseArtefactVersionResponse(res client.ContainerArtefactVersion, data *ArtefactVersionModel) {
 	data.ID = types.StringValue(res.Id)
 	data.Name = types.StringValue(res.Name)
-	data.Type = types.StringValue(artefactRes.Type)
+	data.Type = types.StringValue("container")
 
 	data.Commit = setOptionalStringValue(data.Commit, res.Commit)
 	data.Digest = setOptionalStringValue(data.Digest, res.Digest)
 	data.Ref = setOptionalStringValue(data.Ref, res.Ref)
-	data.Version = setOptionalStringValue(data.Version, res.Version)
+	if res.Version != nil {
+		data.Version = setOptionalStringValue(data.Version, *res.Version)
+	}
 }
 
 func (r *ResourceArtefactVersion) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -149,53 +156,46 @@ func (r *ResourceArtefactVersion) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	httpResp, err := r.client.PostOrgsOrgIdArtefactVersionsWithResponse(ctx, r.orgId, &client.PostOrgsOrgIdArtefactVersionsParams{}, client.PostOrgsOrgIdArtefactVersionsJSONRequestBody{
+	artefactContainerRequest := client.CreateContainerArtefactVersion{
 		Commit:  data.Commit.ValueStringPointer(),
 		Digest:  data.Digest.ValueStringPointer(),
 		Name:    data.Name.ValueString(),
 		Ref:     data.Ref.ValueStringPointer(),
 		Type:    data.Type.ValueString(),
 		Version: data.Version.ValueStringPointer(),
-	})
+	}
+
+	artefactRequest := client.CreateArtefactVersionJSONRequestBody{
+		Type: "container",
+	}
+	err := artefactRequest.MergeCreateContainerArtefactVersion(artefactContainerRequest)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unexpected error",
+			fmt.Sprintf("Failed to create a request for container artefact creation: %v", err),
+		)
+	}
+
+	createArtefactVersionResp, err := r.client.CreateArtefactVersionWithResponse(ctx, r.orgId, &client.CreateArtefactVersionParams{}, artefactRequest)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create artefact version, got error: %s", err))
 		return
 	}
 
-	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to create artefact version, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+	if createArtefactVersionResp.StatusCode() != 200 {
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to create artefact version, unexpected status code: %d, body: %s", createArtefactVersionResp.StatusCode(), createArtefactVersionResp.Body))
 		return
 	}
 
-	artefactHttpResp, err := r.client.GetOrgsOrgIdArtefactsWithResponse(ctx, r.orgId, &client.GetOrgsOrgIdArtefactsParams{
-		Name: &httpResp.JSON200.Name,
-	})
+	artefactContainerResponse, err := createArtefactVersionResp.JSON200.AsContainerArtefactVersion()
 	if err != nil {
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to fetch created artefact, got error: %s", err))
-		return
+		resp.Diagnostics.AddError(
+			"Unexpected error",
+			fmt.Sprintf("Failed to read container artefact creation response: %v", err),
+		)
 	}
 
-	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to fetch created artefact, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-		return
-	}
-
-	artefacts := *artefactHttpResp.JSON200
-	artefactId := httpResp.JSON200.ArtefactId
-	var artefact *client.ArtefactResponse
-	for _, a := range artefacts {
-		if a.Id == artefactId {
-			artefact = &a
-			break
-		}
-	}
-
-	if artefact == nil {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to fetch created artefact, id (%s) not found in response, %v", artefactId, artefacts))
-		return
-	}
-
-	parseArtefactVersionResponse(httpResp.JSON200, artefact, data)
+	parseArtefactVersionResponse(artefactContainerResponse, data)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -211,41 +211,26 @@ func (r *ResourceArtefactVersion) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	httpResp, err := r.client.GetOrgsOrgIdArtefactVersionsArtefactVersionIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+	getArtefactVersionResp, err := r.client.GetArtefactVersionWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read ArtefactVersion, got error: %s", err))
 		return
 	}
 
-	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read ArtefactVersion, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+	if getArtefactVersionResp.StatusCode() != 200 {
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read ArtefactVersion, unexpected status code: %d, body: %s", getArtefactVersionResp.StatusCode(), getArtefactVersionResp.Body))
 		return
 	}
 
-	artefactHttpResp, err := r.client.GetOrgsOrgIdArtefactsWithResponse(ctx, r.orgId, &client.GetOrgsOrgIdArtefactsParams{
-		Name: &httpResp.JSON200.Name,
-	})
+	artefactContainerResponse, err := getArtefactVersionResp.JSON200.AsContainerArtefactVersion()
 	if err != nil {
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read artefact, got error: %s", err))
-		return
+		resp.Diagnostics.AddError(
+			"Unexpected error",
+			fmt.Sprintf("Failed to read container artefact creation response: %v", err),
+		)
 	}
 
-	if httpResp.StatusCode() != 200 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read artefact, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-		return
-	}
-
-	artefactId := httpResp.JSON200.ArtefactId
-	artefact, found := findInSlicePtr(artefactHttpResp.JSON200, func(a client.ArtefactResponse) bool {
-		return a.Id == artefactId
-	})
-
-	if !found {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read artefact, id (%s) not found in response, %+v", artefactId, artefactHttpResp.JSON200))
-		return
-	}
-
-	parseArtefactVersionResponse(httpResp.JSON200, &artefact, data)
+	parseArtefactVersionResponse(artefactContainerResponse, data)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
