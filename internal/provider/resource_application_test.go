@@ -44,7 +44,7 @@ func TestAccResourceApplicationDeletedOutManually(t *testing.T) {
 	ctx := context.Background()
 	id := fmt.Sprintf("test-%d", time.Now().UnixNano())
 
-	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	orgID := os.Getenv("HUMANITEC_ORG")
 	token := os.Getenv("HUMANITEC_TOKEN")
 
 	var client *humanitec.Client

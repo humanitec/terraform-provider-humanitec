@@ -123,17 +123,17 @@ func (r *ResourceRegistry) Configure(ctx context.Context, req resource.Configure
 }
 
 type RegistryModel struct {
-	ID       types.String `tfsdk:"id"`
-	Registry types.String `tfsdk:"registry"`
-	Type     types.String `tfsdk:"type"`
-	EnableCI types.Bool   `tfsdk:"enable_ci"`
-	Creds    types.Object `tfsdk:"creds"`
-	Secrets  *map[string]SecretsModel    `tfsdk:"secrets"`
+	ID       types.String             `tfsdk:"id"`
+	Registry types.String             `tfsdk:"registry"`
+	Type     types.String             `tfsdk:"type"`
+	EnableCI types.Bool               `tfsdk:"enable_ci"`
+	Creds    types.Object             `tfsdk:"creds"`
+	Secrets  *map[string]SecretsModel `tfsdk:"secrets"`
 }
 
 type SecretsModel struct {
 	Namespace types.String `tfsdk:"namespace"`
-	Secret types.String `tfsdk:"secret"`
+	Secret    types.String `tfsdk:"secret"`
 }
 
 func (r *ResourceRegistry) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -374,11 +374,11 @@ func parseRegistryResponse(ctx context.Context, res *client.RegistryResponse, da
 	data.EnableCI = types.BoolValue(res.EnableCi)
 
 	if res.Secrets != nil {
-		secrets :=  make(map[string]SecretsModel)
+		secrets := make(map[string]SecretsModel)
 		for key, value := range *res.Secrets {
 			secrets[key] = SecretsModel{
 				Namespace: types.StringValue(value.Namespace),
-				Secret: types.StringValue(value.Secret),
+				Secret:    types.StringValue(value.Secret),
 			}
 		}
 		data.Secrets = &secrets

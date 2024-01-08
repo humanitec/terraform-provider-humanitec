@@ -56,7 +56,7 @@ func (p *HumanitecProvider) Schema(ctx context.Context, req provider.SchemaReque
 				Optional:            true,
 			},
 			"org_id": schema.StringAttribute{
-				MarkdownDescription: "Humanitec Organization ID (or using the `HUMANITEC_ORG_ID` environment variable)",
+				MarkdownDescription: "Humanitec Organization ID (or using the `HUMANITEC_ORG` environment variable)",
 				Optional:            true,
 			},
 			"token": schema.StringAttribute{
@@ -79,7 +79,16 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		host = humanitec.DefaultAPIHost
 	}
 
-	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	orgID := os.Getenv("HUMANITEC_ORG")
+	if orgID == "" {
+		if orgIDOld := os.Getenv("HUMANITEC_ORG_ID"); orgIDOld != "" {
+			orgID = orgIDOld
+			resp.Diagnostics.AddWarning(
+				"Environment variable HUMANITEC_ORG_ID has been deprecated",
+				"Environment variable HUMANITEC_ORG_ID has been deprecated "+
+					"please use HUMANITEC_ORG instead to set your org_id to the terraform driver ")
+		}
+	}
 	token := os.Getenv("HUMANITEC_TOKEN")
 
 	var data HumanitecProviderModel
@@ -116,7 +125,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		resp.Diagnostics.AddError(
 			"Missing API Org ID Configuration",
 			"While configuring the provider, the API token was not found in "+
-				"the HUMANITEC_ORG_ID environment variable or provider "+
+				"the HUMANITEC_ORG environment variable or provider "+
 				"configuration block org_id attribute.",
 		)
 		// Not returning early allows the logic to collect all errors.

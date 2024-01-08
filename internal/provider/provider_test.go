@@ -17,7 +17,7 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 }
 
 func testAccPreCheck(t *testing.T) {
-	checkEnvVar(t, "HUMANITEC_ORG_ID")
+	checkEnvVar(t, "HUMANITEC_ORG")
 	checkEnvVar(t, "HUMANITEC_TOKEN")
 }
 
