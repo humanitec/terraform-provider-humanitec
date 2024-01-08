@@ -28,7 +28,7 @@ func TestAccResourceRegistry(t *testing.T) {
 			// ImportState testing
 			{
 				ResourceName:      "humanitec_registry.registry_test",
-				ImportStateId: id,
+				ImportStateId:     id,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

@@ -18,7 +18,7 @@ jobs:
           terraform_wrapper: false
       - run: make testacc
         env:
-          HUMANITEC_ORG_ID: ${{ secrets.HUMANITEC_ORG_ID }}
+          HUMANITEC_ORG: ${{ secrets.HUMANITEC_ORG_ID }} # Reusing env variable on GitHub Actions
           HUMANITEC_TOKEN: ${{ secrets.HUMANITEC_TOKEN }}
   unit:
     name: Unit Tests

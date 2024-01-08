@@ -828,6 +828,6 @@ func TestParseMapInput_UnexpectedType(t *testing.T) {
 }
 
 func getDefinitionSecretPath(defID string) string {
-	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	orgID := os.Getenv("HUMANITEC_ORG")
 	return fmt.Sprintf("orgs/%s/resources/defs/%s/driver_secrets", orgID, defID)
 }

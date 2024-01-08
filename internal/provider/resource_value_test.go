@@ -53,7 +53,7 @@ func TestAccResourceValue(t *testing.T) {
 func TestAccResourceValueWithSecretValue(t *testing.T) {
 	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
 	key := "VAL_SECRET_1"
-	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	orgID := os.Getenv("HUMANITEC_ORG")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -97,7 +97,7 @@ func TestAccResourceValueWithSecretValue(t *testing.T) {
 func TestAccResourceValueWithSecretValueSecretRefValue(t *testing.T) {
 	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
 	key := "VAL_SECRET_REF_VALUE_1"
-	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	orgID := os.Getenv("HUMANITEC_ORG")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -140,7 +140,7 @@ func TestAccResourceValueWithSecretValueSecretRefValue(t *testing.T) {
 func TestAccResourceValueWithSecretRef(t *testing.T) {
 	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
 	key := "VAL_SECRET_REF_1"
-	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	orgID := os.Getenv("HUMANITEC_ORG")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -195,7 +195,7 @@ func TestAccResourceValueDeletedOutManually(t *testing.T) {
 
 	key := "VAL_1"
 
-	orgID := os.Getenv("HUMANITEC_ORG_ID")
+	orgID := os.Getenv("HUMANITEC_ORG")
 	token := os.Getenv("HUMANITEC_TOKEN")
 
 	var client *humanitec.Client

@@ -57,7 +57,7 @@ jobs:
 				ImportStateVerify: true,
 			},
 			{
-				ResourceName:      "humanitec_pipeline.pipeline_test",
+				ResourceName: "humanitec_pipeline.pipeline_test",
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					pipeline, err := testResource("humanitec_pipeline.pipeline_test", s)
 					if err != nil {

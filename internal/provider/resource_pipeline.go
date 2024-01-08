@@ -66,12 +66,12 @@ func (r *ResourcePipeline) Schema(ctx context.Context, req resource.SchemaReques
 			},
 			"metadata": schema.MapAttribute{
 				MarkdownDescription: "The map of key value pipeline additional information.",
-				ElementType: types.StringType,
+				ElementType:         types.StringType,
 				Computed:            true,
 			},
 			"trigger_types": schema.SetAttribute{
 				MarkdownDescription: "The list of trigger types in the current schema.",
-				ElementType: types.StringType,
+				ElementType:         types.StringType,
 				Computed:            true,
 			},
 		},
