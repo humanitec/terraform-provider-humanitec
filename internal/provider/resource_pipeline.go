@@ -123,7 +123,7 @@ func (r *ResourcePipeline) Create(ctx context.Context, req resource.CreateReques
 	definition := data.Definition.ValueString()
 
 	var pipeline *client.Pipeline
-	createPipelineResp, err := r.client.CreatePipelineWithBodyWithResponse(ctx, r.orgID, appID, "application/x-yaml", strings.NewReader(definition))
+	createPipelineResp, err := r.client.CreatePipelineWithBodyWithResponse(ctx, r.orgID, appID, &client.CreatePipelineParams{}, "application/x-yaml", strings.NewReader(definition))
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create pipeline, got error: %s", err))
 		return
