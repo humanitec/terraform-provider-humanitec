@@ -255,14 +255,14 @@ func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteReq
 			return retry.NonRetryableError(err)
 		}
 
-		if httpResp.StatusCode() != 204 {
-			return retry.RetryableError(fmt.Errorf("unable to delete application, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		if httpResp.StatusCode() == 404 || httpResp.StatusCode() == 204 {
+			return nil
 		}
 
-		return nil
+		return retry.RetryableError(fmt.Errorf("unable to delete application, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 	})
 	if err != nil {
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read application, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete application, got error: %s", err))
 		return
 	}
 }
