@@ -167,7 +167,7 @@ func (r *ResourceDefinitionCriteriaResource) Create(ctx context.Context, req res
 		return
 	}
 
-	httpResp, err := r.client().PostOrgsOrgIdResourcesDefsDefIdCriteriaWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString(), client.PostOrgsOrgIdResourcesDefsDefIdCriteriaJSONRequestBody{
+	httpResp, err := r.client().CreateResourceDefinitionCriteriaWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString(), client.CreateResourceDefinitionCriteriaJSONRequestBody{
 		AppId:   data.AppID.ValueStringPointer(),
 		EnvId:   data.EnvID.ValueStringPointer(),
 		EnvType: data.EnvType.ValueStringPointer(),
@@ -204,7 +204,7 @@ func (r *ResourceDefinitionCriteriaResource) Read(ctx context.Context, req resou
 		return
 	}
 
-	httpResp, err := r.client().GetOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString())
+	httpResp, err := r.client().GetResourceDefinitionWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource definition, got error: %s", err))
 		return
@@ -299,7 +299,7 @@ func (r *ResourceDefinitionCriteriaResource) Delete(ctx context.Context, req res
 	force := data.ForceDelete.ValueBool()
 
 	err := retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
-		httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString(), data.ID.ValueString(), &client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdParams{
+		httpResp, err := r.client().DeleteResourceDefinitionCriteriaWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString(), data.ID.ValueString(), &client.DeleteResourceDefinitionCriteriaParams{
 			Force: &force,
 		})
 		if err != nil {

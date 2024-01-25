@@ -132,11 +132,11 @@ func (r *ResourceAccountResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	httpResp, err := r.client.PostOrgsOrgIdResourcesAccountsWithResponse(ctx, r.orgId, client.PostOrgsOrgIdResourcesAccountsJSONRequestBody{
-		Id:          &id,
-		Name:        &name,
-		Type:        &accountType,
-		Credentials: &credentials,
+	httpResp, err := r.client.CreateResourceAccountWithResponse(ctx, r.orgId, client.CreateResourceAccountRequestRequest{
+		Id:          id,
+		Name:        name,
+		Type:        accountType,
+		Credentials: credentials,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource account, got error: %s", err))
@@ -164,7 +164,7 @@ func (r *ResourceAccountResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	httpResp, err := r.client.GetOrgsOrgIdResourcesAccountsAccIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+	httpResp, err := r.client.GetResourceAccountWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource account, got error: %s", err))
 		return
@@ -200,7 +200,7 @@ func (r *ResourceAccountResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	httpResp, err := r.client.PatchOrgsOrgIdResourcesAccountsAccIdWithResponse(ctx, r.orgId, data.ID.ValueString(), client.PatchOrgsOrgIdResourcesAccountsAccIdJSONRequestBody{
+	httpResp, err := r.client.PatchResourceAccountWithResponse(ctx, r.orgId, data.ID.ValueString(), client.PatchResourceAccountJSONRequestBody{
 		Name:        &name,
 		Credentials: &credentials,
 	})
@@ -237,7 +237,7 @@ func (r *ResourceAccountResource) Delete(ctx context.Context, req resource.Delet
 	}
 
 	err := retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
-		httpResp, err := r.client.DeleteOrgsOrgIdResourcesAccountsAccIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+		httpResp, err := r.client.DeleteResourceAccountWithResponse(ctx, r.orgId, data.ID.ValueString())
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}

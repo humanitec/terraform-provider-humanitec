@@ -150,7 +150,7 @@ func (r *ResourceResourceDriver) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	id := data.ID.ValueStringPointer()
+	id := data.ID.ValueString()
 
 	var inputsSchema map[string]interface{}
 	if err := json.Unmarshal([]byte(data.InputsSchema.ValueString()), &inputsSchema); err != nil {
@@ -172,7 +172,7 @@ func (r *ResourceResourceDriver) Create(ctx context.Context, req resource.Create
 		accountTypes = append(accountTypes, v.ValueString())
 	}
 
-	httpResp, err := r.client.PostOrgsOrgIdResourcesDriversWithResponse(ctx, r.orgId, client.CreateDriverRequestRequest{
+	httpResp, err := r.client.CreateResourceDriverWithResponse(ctx, r.orgId, client.CreateDriverRequestRequest{
 		Id:           id,
 		AccountTypes: accountTypes,
 		InputsSchema: inputsSchema,
@@ -206,7 +206,7 @@ func (r *ResourceResourceDriver) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	httpResp, err := r.client.GetOrgsOrgIdResourcesDriversDriverIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+	httpResp, err := r.client.GetResourceDriverWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource driver, got error: %s", err))
 		return
@@ -253,7 +253,7 @@ func (r *ResourceResourceDriver) Update(ctx context.Context, req resource.Update
 		}
 	}
 
-	httpResp, err := r.client.PutOrgsOrgIdResourcesDriversDriverIdWithResponse(ctx, r.orgId, id, client.UpdateDriverRequestRequest{
+	httpResp, err := r.client.UpdateResourceDriverWithResponse(ctx, r.orgId, id, client.UpdateDriverRequestRequest{
 		AccountTypes: accountTypes,
 		InputsSchema: inputsSchema,
 		Target:       data.Target.ValueString(),
@@ -285,7 +285,7 @@ func (r *ResourceResourceDriver) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	httpResp, err := r.client.DeleteOrgsOrgIdResourcesDriversDriverIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+	httpResp, err := r.client.DeleteResourceDriverWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete resource driver, got error: %s", err))
 		return

@@ -369,7 +369,7 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	data.ID = types.StringValue(res.Id)
 	data.Name = types.StringValue(res.Name)
 	data.Type = types.StringValue(res.Type)
-	data.DriverType = parseOptionalString(res.DriverType)
+	data.DriverType = types.StringValue(res.DriverType)
 	data.DriverAccount = parseOptionalString(res.DriverAccount)
 	if data.Criteria != nil {
 		data.Criteria = parseCriteriaInput(res.Criteria)
@@ -421,15 +421,14 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	return diags
 }
 
-func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteriaRequest {
+func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteriaRuleRequest {
 	if data.Criteria == nil {
 		return nil
 	}
 
-	criteria := []client.MatchingCriteriaRequest{}
+	criteria := []client.MatchingCriteriaRuleRequest{}
 	for _, c := range *data.Criteria {
-		criteria = append(criteria, client.MatchingCriteriaRequest{
-			Id:      c.ID.ValueStringPointer(),
+		criteria = append(criteria, client.MatchingCriteriaRuleRequest{
 			AppId:   c.AppID.ValueStringPointer(),
 			EnvId:   c.EnvID.ValueStringPointer(),
 			EnvType: c.EnvType.ValueStringPointer(),
@@ -619,7 +618,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	httpResp, err := r.client().PostOrgsOrgIdResourcesDefsWithResponse(ctx, r.orgId(), client.PostOrgsOrgIdResourcesDefsJSONRequestBody{
+	httpResp, err := r.client().CreateResourceDefinitionWithResponse(ctx, r.orgId(), client.CreateResourceDefinitionRequestRequest{
 		Criteria:      criteria,
 		Provision:     provision,
 		DriverAccount: data.DriverAccount.ValueStringPointer(),
@@ -658,7 +657,7 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	httpResp, err := r.client().GetOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), data.ID.ValueString())
+	httpResp, err := r.client().GetResourceDefinitionWithResponse(ctx, r.orgId(), data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource definition, got error: %s", err))
 		return
@@ -675,7 +674,7 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, *httpResp.JSON200.DriverType, httpResp.JSON200.Type)
+	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, httpResp.JSON200.DriverType, httpResp.JSON200.Type)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -766,7 +765,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 
 	// Add criteria
 	for _, c := range addedCriteria {
-		httpResp, err := r.client().PostOrgsOrgIdResourcesDefsDefIdCriteriaWithResponse(ctx, r.orgId(), defID, client.PostOrgsOrgIdResourcesDefsDefIdCriteriaJSONRequestBody{
+		httpResp, err := r.client().CreateResourceDefinitionCriteriaWithResponse(ctx, r.orgId(), defID, client.CreateResourceDefinitionCriteriaJSONRequestBody{
 			AppId:   c.AppID.ValueStringPointer(),
 			EnvId:   c.EnvID.ValueStringPointer(),
 			EnvType: c.EnvType.ValueStringPointer(),
@@ -792,7 +791,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 			continue
 		}
 
-		httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdWithResponse(ctx, r.orgId(), defID, criteriaID, &client.DeleteOrgsOrgIdResourcesDefsDefIdCriteriaCriteriaIdParams{
+		httpResp, err := r.client().DeleteResourceDefinitionCriteriaWithResponse(ctx, r.orgId(), defID, criteriaID, &client.DeleteResourceDefinitionCriteriaParams{
 			Force: &force,
 		})
 		if err != nil {
@@ -808,7 +807,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 
 	provision := provisionFromModel(data.Provision)
 
-	httpResp, err := r.client().PutOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), defID, client.PutOrgsOrgIdResourcesDefsDefIdJSONRequestBody{
+	httpResp, err := r.client().UpdateResourceDefinitionWithResponse(ctx, r.orgId(), defID, client.UpdateResourceDefinitionRequestRequest{
 		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
 		Name:          name,
@@ -852,7 +851,7 @@ func (r *ResourceDefinitionResource) Delete(ctx context.Context, req resource.De
 	force := data.ForceDelete.ValueBool()
 
 	err := retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
-		httpResp, err := r.client().DeleteOrgsOrgIdResourcesDefsDefIdWithResponse(ctx, r.orgId(), data.ID.ValueString(), &client.DeleteOrgsOrgIdResourcesDefsDefIdParams{
+		httpResp, err := r.client().DeleteResourceDefinitionWithResponse(ctx, r.orgId(), data.ID.ValueString(), &client.DeleteResourceDefinitionParams{
 			Force: &force,
 		})
 		if err != nil {
