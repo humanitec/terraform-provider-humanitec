@@ -31,7 +31,7 @@ func (h *HumanitecData) fetchResourceDrivers(ctx context.Context) (map[string]*c
 		return h.driversByType, diags
 	}
 
-	httpResp, err := h.Client.GetOrgsOrgIdResourcesDriversWithResponse(ctx, h.OrgID)
+	httpResp, err := h.Client.ListResourceDriversWithResponse(ctx, h.OrgID)
 	if err != nil {
 		diags.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to get resource drivers, got error: %s", err))
 		return nil, diags
@@ -68,7 +68,7 @@ func (h *HumanitecData) fetchResourceTypes(ctx context.Context) (map[string]*cli
 		return h.typesByType, diags
 	}
 
-	httpResp, err := h.Client.GetOrgsOrgIdResourcesTypesWithResponse(ctx, h.OrgID)
+	httpResp, err := h.Client.ListResourceTypesWithResponse(ctx, h.OrgID)
 	if err != nil {
 		diags.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to get resource types, got error: %s", err))
 		return nil, diags

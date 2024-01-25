@@ -143,10 +143,10 @@ func (r *ResourceEnvironmentTypeUser) Create(ctx context.Context, req resource.C
 	envTypeID := data.EnvTypeID.ValueString()
 	role := data.Role.ValueString()
 
-	var httpResp *client.PostOrgsOrgIdEnvTypesEnvTypeUsersResponse
+	var httpResp *client.CreateUserRoleInEnvTypeResponse
 	err := retry.RetryContext(ctx, createTimeout, func() *retry.RetryError {
 		var err error
-		httpResp, err = r.client.PostOrgsOrgIdEnvTypesEnvTypeUsersWithResponse(ctx, r.orgId, envTypeID, client.PostOrgsOrgIdEnvTypesEnvTypeUsersJSONRequestBody{
+		httpResp, err = r.client.CreateUserRoleInEnvTypeWithResponse(ctx, r.orgId, envTypeID, client.CreateUserRoleInEnvTypeJSONRequestBody{
 			Id:   &userID,
 			Role: &role,
 		})
@@ -186,10 +186,10 @@ func (r *ResourceEnvironmentTypeUser) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	var httpResp *client.GetOrgsOrgIdEnvTypesEnvTypeUsersUserIdResponse
+	var httpResp *client.GetUserRoleInEnvTypeResponse
 	err := retry.RetryContext(ctx, defaultEnvironmentTypeUserReadTimeout, func() *retry.RetryError {
 		var err error
-		httpResp, err = r.client.GetOrgsOrgIdEnvTypesEnvTypeUsersUserIdWithResponse(ctx, r.orgId, data.EnvTypeID.ValueString(), data.UserID.ValueString())
+		httpResp, err = r.client.GetUserRoleInEnvTypeWithResponse(ctx, r.orgId, data.EnvTypeID.ValueString(), data.UserID.ValueString())
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}
@@ -235,7 +235,7 @@ func (r *ResourceEnvironmentTypeUser) Update(ctx context.Context, req resource.U
 	envTypeID := data.EnvTypeID.ValueString()
 	role := data.Role.ValueString()
 
-	httpResp, err := r.client.PatchOrgsOrgIdEnvTypesEnvTypeUsersUserIdWithResponse(ctx, r.orgId, envTypeID, userID, client.PatchOrgsOrgIdAppsAppIdUsersUserIdJSONRequestBody{
+	httpResp, err := r.client.UpdateUserRoleInEnvTypeWithResponse(ctx, r.orgId, envTypeID, userID, client.UpdateUserRoleInEnvTypeJSONRequestBody{
 		Role: &role,
 	})
 	if err != nil {
@@ -268,7 +268,7 @@ func (r *ResourceEnvironmentTypeUser) Delete(ctx context.Context, req resource.D
 	userID := data.UserID.ValueString()
 	applicationID := data.EnvTypeID.ValueString()
 
-	httpResp, err := r.client.DeleteOrgsOrgIdEnvTypesEnvTypeUsersUserIdWithResponse(ctx, r.orgId, applicationID, userID)
+	httpResp, err := r.client.DeleteUserRoleInEnvTypeWithResponse(ctx, r.orgId, applicationID, userID)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete resource environment type user, got error: %s", err))
 		return

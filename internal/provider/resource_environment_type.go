@@ -100,7 +100,7 @@ func (r *ResourceEnvironmentType) Create(ctx context.Context, req resource.Creat
 
 	id := data.ID.ValueString()
 
-	httpResp, err := r.client.PostOrgsOrgIdEnvTypesWithResponse(ctx, r.orgId, client.PostOrgsOrgIdEnvTypesJSONRequestBody{
+	httpResp, err := r.client.CreateEnvironmentTypeWithResponse(ctx, r.orgId, client.CreateEnvironmentTypeJSONRequestBody{
 		Id:          id,
 		Description: data.Description.ValueStringPointer(),
 	})
@@ -130,7 +130,7 @@ func (r *ResourceEnvironmentType) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	httpResp, err := r.client.GetOrgsOrgIdEnvTypesEnvTypeIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+	httpResp, err := r.client.GetEnvironmentTypeWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read environment type, got error: %s", err))
 		return
@@ -160,7 +160,7 @@ func (r *ResourceEnvironmentType) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	httpResp, err := r.client.DeleteOrgsOrgIdEnvTypesEnvTypeIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+	httpResp, err := r.client.DeleteEnvironmentTypeWithResponse(ctx, r.orgId, data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete environment type, got error: %s", err))
 		return

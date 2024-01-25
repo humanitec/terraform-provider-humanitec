@@ -143,10 +143,10 @@ func (r *ResourceApplicationUser) Create(ctx context.Context, req resource.Creat
 	appID := data.AppID.ValueString()
 	role := data.Role.ValueString()
 
-	var httpResp *client.PostOrgsOrgIdAppsAppIdUsersResponse
+	var httpResp *client.CreateUserRoleInAppResponse
 	err := retry.RetryContext(ctx, createTimeout, func() *retry.RetryError {
 		var err error
-		httpResp, err = r.client.PostOrgsOrgIdAppsAppIdUsersWithResponse(ctx, r.orgId, appID, client.PostOrgsOrgIdAppsAppIdUsersJSONRequestBody{
+		httpResp, err = r.client.CreateUserRoleInAppWithResponse(ctx, r.orgId, appID, client.CreateUserRoleInAppJSONRequestBody{
 			Id:   &userID,
 			Role: &role,
 		})
@@ -186,10 +186,10 @@ func (r *ResourceApplicationUser) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	var httpResp *client.GetOrgsOrgIdAppsAppIdUsersUserIdResponse
+	var httpResp *client.GetUserRoleInAppResponse
 	err := retry.RetryContext(ctx, defaultApplicationUserReadTimeout, func() *retry.RetryError {
 		var err error
-		httpResp, err = r.client.GetOrgsOrgIdAppsAppIdUsersUserIdWithResponse(ctx, r.orgId, data.AppID.ValueString(), data.UserID.ValueString())
+		httpResp, err = r.client.GetUserRoleInAppWithResponse(ctx, r.orgId, data.AppID.ValueString(), data.UserID.ValueString())
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}
@@ -235,7 +235,7 @@ func (r *ResourceApplicationUser) Update(ctx context.Context, req resource.Updat
 	appID := data.AppID.ValueString()
 	role := data.Role.ValueString()
 
-	httpResp, err := r.client.PatchOrgsOrgIdAppsAppIdUsersUserIdWithResponse(ctx, r.orgId, appID, userID, client.PatchOrgsOrgIdAppsAppIdUsersUserIdJSONRequestBody{
+	httpResp, err := r.client.UpdateUserRoleInAppWithResponse(ctx, r.orgId, appID, userID, client.UpdateUserRoleInAppJSONRequestBody{
 		Role: &role,
 	})
 	if err != nil {
@@ -268,7 +268,7 @@ func (r *ResourceApplicationUser) Delete(ctx context.Context, req resource.Delet
 	userID := data.UserID.ValueString()
 	applicationID := data.AppID.ValueString()
 
-	httpResp, err := r.client.DeleteOrgsOrgIdAppsAppIdUsersUserIdWithResponse(ctx, r.orgId, applicationID, userID)
+	httpResp, err := r.client.DeleteUserRoleInAppWithResponse(ctx, r.orgId, applicationID, userID)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete resource application user, got error: %s", err))
 		return

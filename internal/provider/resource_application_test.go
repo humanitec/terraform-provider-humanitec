@@ -67,7 +67,7 @@ func TestAccResourceApplicationDeletedOutManually(t *testing.T) {
 					resource.TestCheckResourceAttr("humanitec_application.app_test", "name", "test-app-1"),
 					func(_ *terraform.State) error {
 						// Manually delete the application via the API
-						resp, err := client.DeleteOrgsOrgIdAppsAppIdWithResponse(ctx, orgID, id)
+						resp, err := client.DeleteApplicationWithResponse(ctx, orgID, id)
 						if err != nil {
 							return err
 						}

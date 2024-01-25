@@ -154,7 +154,7 @@ func (r *ResourceApplication) Create(ctx context.Context, req resource.CreateReq
 		}
 	}
 
-	httpResp, err := r.client.PostOrgsOrgIdAppsWithResponse(ctx, r.orgId, client.PostOrgsOrgIdAppsJSONRequestBody{
+	httpResp, err := r.client.CreateApplicationWithResponse(ctx, r.orgId, client.CreateApplicationJSONRequestBody{
 		Id:   id,
 		Name: name,
 		Env:  env,
@@ -191,12 +191,12 @@ func (r *ResourceApplication) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	var httpResp *client.GetOrgsOrgIdAppsAppIdResponse
+	var httpResp *client.GetApplicationResponse
 
 	err := retry.RetryContext(ctx, readTimeout, func() *retry.RetryError {
 		var err error
 
-		httpResp, err = r.client.GetOrgsOrgIdAppsAppIdWithResponse(ctx, r.orgId, data.ID.ValueString())
+		httpResp, err = r.client.GetApplicationWithResponse(ctx, r.orgId, data.ID.ValueString())
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}
@@ -250,7 +250,7 @@ func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteReq
 	// Remove the app
 	appID := data.ID.ValueString()
 	err := retry.RetryContext(ctx, deleteTimeout, func() *retry.RetryError {
-		httpResp, err := r.client.DeleteOrgsOrgIdAppsAppIdWithResponse(ctx, r.orgId, appID)
+		httpResp, err := r.client.DeleteApplicationWithResponse(ctx, r.orgId, appID)
 		if err != nil {
 			return retry.NonRetryableError(err)
 		}
