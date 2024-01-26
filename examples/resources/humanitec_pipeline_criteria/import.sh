@@ -1,0 +1,1 @@
+terraform import humanitec_pipeline_criteria.example app_id/pipeline_id/criteria_id
