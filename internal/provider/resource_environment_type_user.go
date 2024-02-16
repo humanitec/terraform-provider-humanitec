@@ -28,19 +28,14 @@ var (
 	defaultEnvironmentTypeUserReadTimeout   = 30 * time.Second
 )
 
-func NewResourceEnvironmentTypeUser(deprecatedVersion bool) func() resource.Resource {
-	return func() resource.Resource {
-		return &ResourceEnvironmentTypeUser{
-			deprecatedVersion: deprecatedVersion,
-		}
-	}
+func NewResourceEnvironmentTypeUser() resource.Resource {
+	return &ResourceEnvironmentTypeUser{}
 }
 
 // ResourceDefinitionResource defines the resource implementation.
 type ResourceEnvironmentTypeUser struct {
-	client            *humanitec.Client
-	orgId             string
-	deprecatedVersion bool
+	client *humanitec.Client
+	orgId  string
 }
 
 // DefinitionResourceModel describes the resource data model.
@@ -55,11 +50,7 @@ type ResourceEnvironmentTypeUserModel struct {
 }
 
 func (r *ResourceEnvironmentTypeUser) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	if r.deprecatedVersion {
-		resp.TypeName = req.ProviderTypeName + "_resource_environment_type_user"
-	} else {
-		resp.TypeName = req.ProviderTypeName + "_environment_type_user"
-	}
+	resp.TypeName = req.ProviderTypeName + "_environment_type_user"
 }
 
 func (r *ResourceEnvironmentTypeUser) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -96,9 +87,6 @@ func (r *ResourceEnvironmentTypeUser) Schema(ctx context.Context, req resource.S
 				Read:   true,
 			}),
 		},
-	}
-	if r.deprecatedVersion {
-		resp.Schema.DeprecationMessage = "This resource is deprecated. Please use `humanitec_environment_type_user` instead."
 	}
 }
 

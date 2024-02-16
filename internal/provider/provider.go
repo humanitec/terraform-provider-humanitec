@@ -80,15 +80,6 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	orgID := os.Getenv("HUMANITEC_ORG")
-	if orgID == "" {
-		if orgIDOld := os.Getenv("HUMANITEC_ORG_ID"); orgIDOld != "" {
-			orgID = orgIDOld
-			resp.Diagnostics.AddWarning(
-				"Environment variable HUMANITEC_ORG_ID has been deprecated",
-				"Environment variable HUMANITEC_ORG_ID has been deprecated "+
-					"please use HUMANITEC_ORG instead to set your org_id to the terraform driver ")
-		}
-	}
 	token := os.Getenv("HUMANITEC_TOKEN")
 
 	var data HumanitecProviderModel
@@ -164,14 +155,12 @@ func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Res
 		NewResourceAccountResource,
 		NewResourceAgent,
 		NewResourceApplication,
-		NewResourceApplicationUser(true),
-		NewResourceApplicationUser(false),
+		NewResourceApplicationUser,
 		NewResourceArtefactVersion,
 		NewResourceDefinitionCriteriaResource,
 		NewResourceDefinitionResource,
 		NewResourceEnvironmentType,
-		NewResourceEnvironmentTypeUser(true),
-		NewResourceEnvironmentTypeUser(false),
+		NewResourceEnvironmentTypeUser,
 		NewResourcePipeline,
 		NewResourcePipelineCriteria,
 		NewResourceRegistry,

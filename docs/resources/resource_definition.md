@@ -44,12 +44,6 @@ resource "humanitec_resource_definition" "postgres" {
       "password" = "test"
     })
   }
-
-  criteria = [
-    {
-      app_id = "test-app"
-    }
-  ]
 }
 
 resource "humanitec_resource_definition" "gke" {
@@ -69,17 +63,6 @@ resource "humanitec_resource_definition" "gke" {
       "credentials" = "{}"
     })
   }
-
-  criteria = [
-    {
-      app_id   = "test-app"
-      env_type = "development"
-    },
-    {
-      app_id   = "test-app"
-      env_type = "staging"
-    }
-  ]
 }
 ```
 
@@ -95,27 +78,11 @@ resource "humanitec_resource_definition" "gke" {
 
 ### Optional
 
-- `criteria` (Attributes Set, Deprecated) The criteria to use when looking for a Resource Definition during the deployment. (see [below for nested schema](#nestedatt--criteria))
 - `driver_account` (String) Security account required by the driver.
 - `driver_inputs` (Attributes) Data that should be passed around split by sensitivity. (see [below for nested schema](#nestedatt--driver_inputs))
 - `force_delete` (Boolean) If set to `true`, will mark the Resource Definition for deletion, even if it affects existing Active Resources.
 - `provision` (Attributes Map) ProvisionDependencies defines resources which are needed to be co-provisioned with the current resource. (see [below for nested schema](#nestedatt--provision))
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
-
-<a id="nestedatt--criteria"></a>
-### Nested Schema for `criteria`
-
-Optional:
-
-- `app_id` (String) The ID of the Application that the Resources should belong to.
-- `env_id` (String) The ID of the Environment that the Resources should belong to. If `env_type` is also set, it must match the Type of the Environment for the Criteria to match.
-- `env_type` (String) The Type of the Environment that the Resources should belong to. If `env_id` is also set, it must have an Environment Type that matches this parameter for the Criteria to match.
-- `res_id` (String) The ID of the Resource in the Deployment Set. The ID is normally a `.` separated path to the definition in the set, e.g. `modules.my-module.externals.my-database`.
-
-Read-Only:
-
-- `id` (String) Matching Criteria ID
-
 
 <a id="nestedatt--driver_inputs"></a>
 ### Nested Schema for `driver_inputs`
@@ -123,9 +90,7 @@ Read-Only:
 Optional:
 
 - `secret_refs` (String) JSON encoded secrets section of the data set. They can hold sensitive information that will be stored in the primary organization secret store and replaced with the secret store paths when sent outside, or secret references stored in a defined secret store. Can't be used together with secrets.
-- `secrets` (Map of String, Sensitive, Deprecated) Secrets section of the data set. Deprecated in favour of secrets_string. Can't be used together with secret_refs.
 - `secrets_string` (String) JSON encoded secret data set. Passed around as-is. Can't be used together with secret_refs.
-- `values` (Map of String, Deprecated) Values section of the data set. Passed around as-is. Deprecated in favour of values_string.
 - `values_string` (String) JSON encoded input data set. Passed around as-is.
 
 

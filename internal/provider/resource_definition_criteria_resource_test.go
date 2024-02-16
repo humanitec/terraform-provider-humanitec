@@ -128,9 +128,9 @@ resource "humanitec_resource_definition" "s3_test" {
   driver_type = "humanitec/s3"
 
   driver_inputs = {
-    values = {
+		values_string = jsonencode({
       "region" = "us-east-1"
-    }
+    })
   }
 }
 
@@ -151,9 +151,9 @@ resource "humanitec_resource_definition" "s3_test" {
   driver_type = "humanitec/s3"
 
   driver_inputs = {
-    values = {
+		values_string = jsonencode({
       "region" = "us-east-1"
-    }
+    })
   }
 }
 
@@ -174,9 +174,9 @@ resource "humanitec_resource_definition" "s3_test" {
   driver_type = "humanitec/s3"
 
   driver_inputs = {
-    values = {
+		values_string = jsonencode({
       "region" = "us-east-1"
-    }
+    })
   }
 }
 
