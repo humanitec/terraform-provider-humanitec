@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
@@ -50,9 +48,6 @@ func (r *ResourceDefinitionResource) orgId() string {
 
 // DefinitionResourceDriverInputsModel describes the resource data model.
 type DefinitionResourceDriverInputsModel struct {
-	Values  types.Map `tfsdk:"values"`
-	Secrets types.Map `tfsdk:"secrets"`
-
 	ValuesString  types.String `tfsdk:"values_string"`
 	SecretsString types.String `tfsdk:"secrets_string"`
 	SecretRefs    types.String `tfsdk:"secret_refs"`
@@ -81,7 +76,6 @@ type DefinitionResourceModel struct {
 	DriverType    types.String                                 `tfsdk:"driver_type"`
 	DriverAccount types.String                                 `tfsdk:"driver_account"`
 	DriverInputs  *DefinitionResourceDriverInputsModel         `tfsdk:"driver_inputs"`
-	Criteria      *[]DefinitionResourceCriteriaModel           `tfsdk:"criteria"`
 	Provision     *map[string]DefinitionResourceProvisionModel `tfsdk:"provision"`
 
 	ForceDelete types.Bool     `tfsdk:"force_delete"`
@@ -130,36 +124,13 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 				MarkdownDescription: "Data that should be passed around split by sensitivity.",
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{
-					"values": schema.MapAttribute{
-						MarkdownDescription: "Values section of the data set. Passed around as-is. Deprecated in favour of values_string.",
-						ElementType:         types.StringType,
-						Optional:            true,
-						DeprecationMessage:  "Use values_string instead",
-					},
 					"values_string": schema.StringAttribute{
 						MarkdownDescription: "JSON encoded input data set. Passed around as-is.",
 						Optional:            true,
-						Validators: []validator.String{
-							stringvalidator.ConflictsWith(path.Expressions{
-								path.MatchRelative().AtParent().AtName("values"),
-							}...),
-						},
-					},
-					"secrets": schema.MapAttribute{
-						MarkdownDescription: "Secrets section of the data set. Deprecated in favour of secrets_string. Can't be used together with secret_refs.",
-						ElementType:         types.StringType,
-						Optional:            true,
-						Sensitive:           true,
-						DeprecationMessage:  "Use secrets_string instead",
 					},
 					"secrets_string": schema.StringAttribute{
 						MarkdownDescription: "JSON encoded secret data set. Passed around as-is. Can't be used together with secret_refs.",
 						Optional:            true,
-						Validators: []validator.String{
-							stringvalidator.ConflictsWith(path.Expressions{
-								path.MatchRelative().AtParent().AtName("secrets"),
-							}...),
-						},
 					},
 					"secret_refs": schema.StringAttribute{
 						MarkdownDescription: "JSON encoded secrets section of the data set. They can hold sensitive information that will be stored in the primary organization secret store and replaced with the secret store paths when sent outside, or secret references stored in a defined secret store. Can't be used together with secrets.",
@@ -169,35 +140,6 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 							stringvalidator.ConflictsWith(path.Expressions{
 								path.MatchRelative().AtParent().AtName("secrets_string"),
 							}...),
-						},
-					},
-				},
-			},
-			"criteria": schema.SetNestedAttribute{
-				MarkdownDescription: "The criteria to use when looking for a Resource Definition during the deployment.",
-				Optional:            true,
-				DeprecationMessage:  "Inline criteria management is deprecated and should be done using the dedicated humanitec_resource_definition_criteria resource instead",
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"id": schema.StringAttribute{
-							MarkdownDescription: "Matching Criteria ID",
-							Computed:            true,
-						},
-						"app_id": schema.StringAttribute{
-							MarkdownDescription: "The ID of the Application that the Resources should belong to.",
-							Optional:            true,
-						},
-						"env_id": schema.StringAttribute{
-							MarkdownDescription: "The ID of the Environment that the Resources should belong to. If `env_type` is also set, it must match the Type of the Environment for the Criteria to match.",
-							Optional:            true,
-						},
-						"env_type": schema.StringAttribute{
-							MarkdownDescription: "The Type of the Environment that the Resources should belong to. If `env_id` is also set, it must have an Environment Type that matches this parameter for the Criteria to match.",
-							Optional:            true,
-						},
-						"res_id": schema.StringAttribute{
-							MarkdownDescription: "The ID of the Resource in the Deployment Set. The ID is normally a `.` separated path to the definition in the set, e.g. `modules.my-module.externals.my-database`.",
-							Optional:            true,
 						},
 					},
 				},
@@ -261,83 +203,6 @@ func parseOptionalString(input *string) types.String {
 	return types.StringValue(*input)
 }
 
-func parseMapInput(input map[string]interface{}, inputSchema map[string]interface{}, field string) (map[string]string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	inputSchemaJSON, err := json.MarshalIndent(inputSchema, "", "\t")
-	if err != nil {
-		diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal driver schema: %s", err.Error()))
-	}
-
-	lenDriverInput := len(input)
-	inputProperties, ok := valueAtPath[map[string]interface{}](inputSchema, []string{"properties", field, "properties"})
-	if lenDriverInput > 0 && !ok {
-		diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("No value inputs expected in driver input schema:\n%s", string(inputSchemaJSON)))
-		return nil, diags
-	}
-
-	inputMap := make(map[string]string, lenDriverInput)
-	for k, v := range input {
-		propertyType, ok := valueAtPath[string](inputProperties, []string{k, "type"})
-		if !ok {
-			diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Property \"%s\" not found in driver input schema:\n%s", k, string(inputSchemaJSON)))
-			continue
-		}
-
-		switch propertyType {
-		case "string":
-			inputMap[k] = v.(string)
-		case "integer":
-			if isReference(v) {
-				inputMap[k] = v.(string)
-				continue
-			}
-			inputMap[k] = strconv.FormatInt(int64(v.(float64)), 10)
-		case "boolean":
-			if isReference(v) {
-				inputMap[k] = v.(string)
-				continue
-			}
-			inputMap[k] = strconv.FormatBool(v.(bool))
-		case "object":
-			if isReference(v) {
-				inputMap[k] = v.(string)
-				continue
-			}
-			obj, err := json.Marshal(v)
-			if err != nil {
-				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to marshal property \"%s\": %s", k, err.Error()))
-				continue
-			}
-			inputMap[k] = string(obj)
-		default:
-			diags.AddError(HUM_PROVIDER_ERR, fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\" in driver input schema:\n%s", propertyType, k, string(inputSchemaJSON)))
-			continue
-		}
-	}
-	return inputMap, diags
-}
-
-func parseCriteriaInput(criteria *[]client.MatchingCriteriaResponse) *[]DefinitionResourceCriteriaModel {
-	if criteria == nil {
-		return nil
-	}
-
-	data := []DefinitionResourceCriteriaModel{}
-
-	for _, c := range *criteria {
-		data = append(data, DefinitionResourceCriteriaModel{
-			ID:      types.StringValue(c.Id),
-			AppID:   parseOptionalString(c.AppId),
-			EnvID:   parseOptionalString(c.EnvId),
-			EnvType: parseOptionalString(c.EnvType),
-			ResID:   parseOptionalString(c.ResId),
-		})
-	}
-
-	return &data
-}
-
 func parseProvisionInput(provision *map[string]client.ProvisionDependenciesResponse) *map[string]DefinitionResourceProvisionModel {
 	if provision == nil {
 		return nil
@@ -371,9 +236,6 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	data.Type = types.StringValue(res.Type)
 	data.DriverType = types.StringValue(res.DriverType)
 	data.DriverAccount = parseOptionalString(res.DriverAccount)
-	if data.Criteria != nil {
-		data.Criteria = parseCriteriaInput(res.Criteria)
-	}
 	data.Provision = parseProvisionInput(res.Provision)
 
 	driverInputs := res.DriverInputs
@@ -381,30 +243,16 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	if driverInputs != nil && driverInputs.Values != nil {
 		if data.DriverInputs == nil {
 			data.DriverInputs = &DefinitionResourceDriverInputsModel{
-				Secrets:       types.MapNull(types.StringType),
 				SecretsString: types.StringNull(),
 				SecretRefs:    types.StringNull(),
 			}
 		}
 
-		if !data.DriverInputs.Values.IsNull() {
-			// Support deprecated values field
-			valuesMap, diag := parseMapInput(*driverInputs.Values, driverInputSchema, "values")
-			diags.Append(diag...)
-
-			m, diag := types.MapValueFrom(ctx, types.StringType, valuesMap)
-			diags.Append(diag...)
-
-			data.DriverInputs.Values = m
-			data.DriverInputs.ValuesString = types.StringNull()
-		} else {
-			b, err := json.Marshal(driverInputs.Values)
-			if err != nil {
-				diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal values: %s", err.Error()))
-			}
-			data.DriverInputs.Values = types.MapNull(types.StringType)
-			data.DriverInputs.ValuesString = types.StringValue(string(b))
+		b, err := json.Marshal(driverInputs.Values)
+		if err != nil {
+			diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal values: %s", err.Error()))
 		}
+		data.DriverInputs.ValuesString = types.StringValue(string(b))
 	}
 
 	if data.DriverInputs != nil && data.DriverInputs.SecretRefs.IsUnknown() {
@@ -419,24 +267,6 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 		}
 	}
 	return diags
-}
-
-func criteriaFromModel(data *DefinitionResourceModel) *[]client.MatchingCriteriaRuleRequest {
-	if data.Criteria == nil {
-		return nil
-	}
-
-	criteria := []client.MatchingCriteriaRuleRequest{}
-	for _, c := range *data.Criteria {
-		criteria = append(criteria, client.MatchingCriteriaRuleRequest{
-			AppId:   c.AppID.ValueStringPointer(),
-			EnvId:   c.EnvID.ValueStringPointer(),
-			EnvType: c.EnvType.ValueStringPointer(),
-			ResId:   c.ResID.ValueStringPointer(),
-		})
-	}
-
-	return &criteria
 }
 
 func provisionFromModel(data *map[string]DefinitionResourceProvisionModel) *map[string]client.ProvisionDependenciesRequest {
@@ -456,91 +286,6 @@ func provisionFromModel(data *map[string]DefinitionResourceProvisionModel) *map[
 	return &provision
 }
 
-// isReference returns whether a value is a resource reference https://docs.humanitec.com/reference/concepts/resources/references
-func isReference(v interface{}) bool {
-	s, ok := v.(string)
-	if !ok {
-		return false
-	}
-	return strings.HasPrefix(s, "${resources")
-}
-
-func driverInputToMap(ctx context.Context, data types.Map, inputSchema map[string]interface{}, field string) (map[string]interface{}, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	inputSchemaJSON, err := json.MarshalIndent(inputSchema, "", "\t")
-	if err != nil {
-		diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal driver schema: %s", err.Error()))
-	}
-
-	var driverInput map[string]string
-	diags.Append(data.ElementsAs(ctx, &driverInput, false)...)
-
-	if driverInput == nil {
-		return nil, diags
-	}
-
-	lenDriverInput := len(driverInput)
-	inputProperties, ok := valueAtPath[map[string]interface{}](inputSchema, []string{"properties", field, "properties"})
-	if lenDriverInput > 0 && !ok {
-		diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("No %s inputs expected in driver input schema:\n%s", field, string(inputSchemaJSON)))
-		return nil, diags
-	}
-
-	inputMap := make(map[string]interface{}, lenDriverInput)
-	for k, v := range driverInput {
-		propertyType, ok := valueAtPath[string](inputProperties, []string{k, "type"})
-		if !ok {
-			diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Property \"%s\" not found in driver input schema %s:\n%s", k, field, string(inputSchemaJSON)))
-			continue
-		}
-
-		switch propertyType {
-		case "string":
-			inputMap[k] = v
-		case "integer":
-			if isReference(v) {
-				inputMap[k] = v
-				continue
-			}
-			intVar, err := strconv.Atoi(v)
-			if err != nil {
-				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to integer: %s", k, v, err.Error()))
-				continue
-			}
-			inputMap[k] = intVar
-		case "boolean":
-			if isReference(v) {
-				inputMap[k] = v
-				continue
-			}
-			booleanVar, err := strconv.ParseBool(v)
-			if err != nil {
-				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to convert property \"%s\" with value \"%s\" to boolean: %s", k, v, err.Error()))
-				continue
-			}
-			inputMap[k] = booleanVar
-		case "object":
-			if isReference(v) {
-				inputMap[k] = v
-				continue
-			}
-			var obj map[string]interface{}
-			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				diags.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal property \"%s\": %s", k, err.Error()))
-				continue
-			}
-			inputMap[k] = obj
-		default:
-			diags.AddError(HUM_PROVIDER_ERR, fmt.Sprintf("Unexpected property type \"%s\" for property \"%s\" driver input schema %s:\n%s", propertyType, k, field, string(inputSchemaJSON)))
-			continue
-		}
-
-	}
-
-	return inputMap, diags
-}
-
 func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRefsRequest, diag.Diagnostics) {
 	if data.DriverInputs == nil {
 		return nil, nil
@@ -554,10 +299,7 @@ func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface
 	var secretRefs map[string]interface{}
 	var secretsDiag diag.Diagnostics
 
-	if !data.DriverInputs.Secrets.IsNull() {
-		// Support deprecated secrets field
-		secrets, secretsDiag = driverInputToMap(ctx, data.DriverInputs.Secrets, inputSchema, "secrets")
-	} else if !data.DriverInputs.SecretsString.IsNull() {
+	if !data.DriverInputs.SecretsString.IsNull() {
 		if err := json.Unmarshal([]byte(data.DriverInputs.SecretsString.ValueString()), &secrets); err != nil {
 			secretsDiag.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal secrets_string: %s", err.Error()))
 		}
@@ -577,10 +319,7 @@ func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface
 	var values map[string]interface{}
 	var valuesDiag diag.Diagnostics
 
-	if !data.DriverInputs.Values.IsNull() {
-		// Support deprecated values field
-		values, valuesDiag = driverInputToMap(ctx, data.DriverInputs.Values, inputSchema, "values")
-	} else if !data.DriverInputs.ValuesString.IsNull() {
+	if !data.DriverInputs.ValuesString.IsNull() {
 		if err := json.Unmarshal([]byte(data.DriverInputs.ValuesString.ValueString()), &values); err != nil {
 			valuesDiag.AddError(HUM_INPUT_ERR, fmt.Sprintf("Failed to unmarshal values_string: %s", err.Error()))
 		}
@@ -603,7 +342,6 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	criteria := criteriaFromModel(data)
 	provision := provisionFromModel(data.Provision)
 	driverType := data.DriverType.ValueString()
 	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
@@ -619,7 +357,6 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	httpResp, err := r.client().CreateResourceDefinitionWithResponse(ctx, r.orgId(), client.CreateResourceDefinitionRequestRequest{
-		Criteria:      criteria,
 		Provision:     provision,
 		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
@@ -689,52 +426,6 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func diffCriteria(previousCriteria *[]DefinitionResourceCriteriaModel, currentCriteria *[]DefinitionResourceCriteriaModel) ([]DefinitionResourceCriteriaModel, []DefinitionResourceCriteriaModel) {
-	addedCriteria := []DefinitionResourceCriteriaModel{}
-	removedCriteria := []DefinitionResourceCriteriaModel{}
-
-	if previousCriteria == nil {
-		if currentCriteria != nil {
-			// All criteria are new
-			addedCriteria = append(addedCriteria, *currentCriteria...)
-		}
-	} else {
-		if currentCriteria == nil {
-			// All criteria are deleted
-			removedCriteria = append(removedCriteria, *previousCriteria...)
-		} else {
-			toKey := func(c *DefinitionResourceCriteriaModel) string {
-				return fmt.Sprintf("%s/%s/%s/%s", c.AppID, c.EnvID, c.EnvType, c.ResID)
-			}
-
-			// Diff old vs. new
-			previousCriteriaMap := map[string]*DefinitionResourceCriteriaModel{}
-			for _, c := range *previousCriteria {
-				c := c
-				previousCriteriaMap[toKey(&c)] = &c
-			}
-			currentCriteriaMap := map[string]*DefinitionResourceCriteriaModel{}
-			for _, c := range *currentCriteria {
-				c := c
-				key := toKey(&c)
-				currentCriteriaMap[key] = &c
-
-				if _, ok := previousCriteriaMap[key]; !ok {
-					addedCriteria = append(addedCriteria, c)
-				}
-			}
-
-			for k, v := range previousCriteriaMap {
-				if _, ok := currentCriteriaMap[k]; !ok {
-					removedCriteria = append(removedCriteria, *v)
-				}
-			}
-		}
-	}
-
-	return addedCriteria, removedCriteria
-}
-
 func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data, state *DefinitionResourceModel
 
@@ -761,49 +452,6 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 	}
 
 	defID := data.ID.ValueString()
-	addedCriteria, removedCriteria := diffCriteria(state.Criteria, data.Criteria)
-
-	// Add criteria
-	for _, c := range addedCriteria {
-		httpResp, err := r.client().CreateResourceDefinitionCriteriaWithResponse(ctx, r.orgId(), defID, client.CreateResourceDefinitionCriteriaJSONRequestBody{
-			AppId:   c.AppID.ValueStringPointer(),
-			EnvId:   c.EnvID.ValueStringPointer(),
-			EnvType: c.EnvType.ValueStringPointer(),
-			ResId:   c.ResID.ValueStringPointer(),
-		})
-		if err != nil {
-			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource definition criteria, got error: %s", err))
-			return
-		}
-
-		if httpResp.StatusCode() != 200 {
-			resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to create resource definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-			return
-		}
-	}
-
-	// Remove criteria
-	force := true
-	for _, c := range removedCriteria {
-		criteriaID := c.ID.ValueString()
-		if criteriaID == "" {
-			// This shouldn't be possible, the patch and state override below will unset never saved values
-			continue
-		}
-
-		httpResp, err := r.client().DeleteResourceDefinitionCriteriaWithResponse(ctx, r.orgId(), defID, criteriaID, &client.DeleteResourceDefinitionCriteriaParams{
-			Force: &force,
-		})
-		if err != nil {
-			resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete resource definition criteria, got error: %s", err))
-			return
-		}
-
-		if httpResp.StatusCode() != 204 {
-			resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to delete resource definition criteria, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-			return
-		}
-	}
 
 	provision := provisionFromModel(data.Provision)
 

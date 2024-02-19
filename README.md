@@ -1,18 +1,12 @@
 # Terraform Provider Humanitec
 
----
-
-:construction: __This provider is experimental and currently not recommended for production usage.__ :construction:
-
----
-
 * [Usage](https://registry.terraform.io/providers/humanitec/humanitec/latest)
 * [Documentation](https://registry.terraform.io/providers/humanitec/humanitec/latest/docs)
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.18
+* [Terraform](https://www.terraform.io/downloads.html) >= 1.0
+* [Go](https://golang.org/doc/install) >= 1.18
 
 ## Building The Provider
 
