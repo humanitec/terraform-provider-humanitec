@@ -20,9 +20,9 @@ resource "humanitec_resource_definition" "example" {
 
   driver_type = "humanitec/s3"
   driver_inputs = {
-    values = {
+    values_string = jsonencode({
       region = "us-east-1"
-    }
+    })
   }
 
   lifecycle {

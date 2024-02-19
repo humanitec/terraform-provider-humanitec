@@ -48,7 +48,7 @@ func (p *HumanitecProvider) Metadata(ctx context.Context, req provider.MetadataR
 
 func (p *HumanitecProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Experimental Terraform Provider for [Humanitec](https://humanitec.com/).",
+		MarkdownDescription: "Terraform Provider for [Humanitec](https://humanitec.com/).",
 
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
