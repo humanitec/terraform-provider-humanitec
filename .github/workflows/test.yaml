@@ -7,8 +7,8 @@ jobs:
     name: Acceptance Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
           cache: true
@@ -24,9 +24,16 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
           cache: true
-      - run: go test -v -cover ./...
+      - name: Tidy go.mod file
+        run: go mod tidy
+      - name: Generate docs
+        run: go generate ./...
+      - name: Check git diff is clean (all files generated should be committed)
+        run: git diff --exit-code
+      - name: Run tests
+        run: go test -v -cover ./...
