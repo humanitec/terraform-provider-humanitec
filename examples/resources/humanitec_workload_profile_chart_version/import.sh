@@ -1,0 +1,2 @@
+# import an existing Workload Profile Chart Version
+terraform import humanitec_workload_profile_chart_version.custom profile_chart_id/profile_chart_version
