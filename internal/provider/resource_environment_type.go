@@ -148,7 +148,34 @@ func (r *ResourceEnvironmentType) Read(ctx context.Context, req resource.ReadReq
 }
 
 func (r *ResourceEnvironmentType) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError("UNSUPPORTED_OPERATION", "Updating an environment type is currently not supported")
+	var data *EnvironmentTypeModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	id := data.ID.ValueString()
+
+	httpResp, err := r.client.UpdateEnvironmentTypeWithResponse(ctx, r.orgId, id, client.UpdateEnvironmentTypeJSONRequestBody{
+		Description: data.Description.ValueStringPointer(),
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update environment type, got error: %s", err))
+		return
+	}
+
+	if httpResp.StatusCode() != 200 {
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to update environment type, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		return
+	}
+
+	parseEnvironmentTypeResponse(httpResp.JSON200, data)
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *ResourceEnvironmentType) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
