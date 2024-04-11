@@ -36,7 +36,7 @@ func TestAccResourceEnvironmentTypeUser(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				// At the moment there is nothing we can update :-/
+				// At the moment, there is nothing we can update :-/
 				Config: testAccResourceEnvironmentTypeUser(id, testUserID, "deployer"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_environment_type_user.another_user", "role", "deployer"),
