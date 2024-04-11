@@ -30,6 +30,14 @@ func TestAccResourceEnvironmentType(t *testing.T) {
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"credentials"},
 			},
+			// Update testing
+			{
+				Config: testAccResourceEnvironmentType(id, "Custom QA env"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_environment_type.qa", "id", id),
+					resource.TestCheckResourceAttr("humanitec_environment_type.qa", "description", "Custom QA env"),
+				),
+			},
 			// Delete testing automatically occurs in TestCase
 		},
 	})
