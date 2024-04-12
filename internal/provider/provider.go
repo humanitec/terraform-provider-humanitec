@@ -168,6 +168,7 @@ func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Res
 		NewResourceRule,
 		NewResourceSecretStore,
 		NewResourceValue,
+		NewResourceUser,
 		NewResourceWebhook,
 		NewResourceWorkloadProfileChartVersion,
 		NewResourceWorkloadProfile,
