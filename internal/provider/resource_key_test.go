@@ -10,6 +10,7 @@ import (
 
 func TestAccResourceKeys(t *testing.T) {
 	key := getPublicKey(t)
+	var id string
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -19,6 +20,8 @@ func TestAccResourceKeys(t *testing.T) {
 				Config: testAccResourceKey(key),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_key.key_test", "key", key),
+					resource.TestCheckResourceAttrSet("humanitec_key.key_test", "id"),
+					resource.TestCheckResourceAttrSet("humanitec_key.key_test", "fingerprint"),
 				),
 			},
 			// ImportState testing
@@ -27,9 +30,13 @@ func TestAccResourceKeys(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
-					id := s.RootModule().Resources["humanitec_key.key_test"].Primary.Attributes["id"]
+					id = s.RootModule().Resources["humanitec_key.key_test"].Primary.Attributes["id"]
 					return id, nil
 				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_key.key_test", "key", key),
+					resource.TestCheckResourceAttr("humanitec_key.key_test", "id", id),
+				),
 			},
 			// Delete testing automatically occurs in TestCase
 		},

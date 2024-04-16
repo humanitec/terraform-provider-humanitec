@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 
@@ -37,9 +39,6 @@ type ResourceKey struct {
 type OperatorKeyModel struct {
 	ID          types.String   `tfsdk:"id"`
 	Key         types.String   `tfsdk:"key"`
-	CreatedAt   types.String   `tfsdk:"created_at"`
-	CreatedBy   types.String   `tfsdk:"created_by"`
-	ExpiredAt   types.String   `tfsdk:"expired_at"`
 	Fingerprint types.String   `tfsdk:"fingerprint"`
 	Timeouts    timeouts.Value `tfsdk:"timeouts"`
 }
@@ -50,7 +49,8 @@ func (r *ResourceKey) Metadata(_ context.Context, req resource.MetadataRequest, 
 
 func (r *ResourceKey) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "A key is used by Humanitec to ensure ensure access to Humanitec hosted drivers. The key helps Humanitec operator to establish identity against the Humanitec Driver API",
+		MarkdownDescription: `A key is used by Humanitec to ensure ensure access to Humanitec hosted drivers.
+The key helps Humanitec operator to establish identity against the Humanitec Driver API`,
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -60,18 +60,9 @@ func (r *ResourceKey) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 			"key": schema.StringAttribute{
 				MarkdownDescription: "The public key that is used for authentication.",
 				Required:            true,
-			},
-			"created_at": schema.StringAttribute{
-				MarkdownDescription: "Time that the key was created.",
-				Computed:            true,
-			},
-			"created_by": schema.StringAttribute{
-				MarkdownDescription: "The ID of the user who created the key.",
-				Computed:            true,
-			},
-			"expired_at": schema.StringAttribute{
-				MarkdownDescription: "Date time of the key expiration.",
-				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"fingerprint": schema.StringAttribute{
 				MarkdownDescription: "Hexadecimal representation of the SHA256 hash of the DER representation of the key.",
@@ -109,9 +100,6 @@ func (r *ResourceKey) Configure(ctx context.Context, req resource.ConfigureReque
 func parseKeysResponse(res *client.PublicKey, data *OperatorKeyModel) {
 	data.ID = types.StringValue(res.Id)
 	data.Key = types.StringValue(res.Key)
-	data.CreatedAt = types.StringValue(res.CreatedAt.String())
-	data.CreatedBy = types.StringValue(res.CreatedBy)
-	data.ExpiredAt = types.StringValue(res.ExpiredAt.String())
 	data.Fingerprint = types.StringValue(res.Fingerprint)
 }
 
