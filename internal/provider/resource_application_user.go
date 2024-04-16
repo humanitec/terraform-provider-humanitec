@@ -32,13 +32,13 @@ func NewResourceApplicationUser() resource.Resource {
 	return &ResourceApplicationUser{}
 }
 
-// ResourceDefinitionResource defines the resource implementation.
+// ResourceApplicationUser defines the application user implementation.
 type ResourceApplicationUser struct {
 	client *humanitec.Client
 	orgId  string
 }
 
-// DefinitionResourceModel describes the resource data model.
+// ResourceApplicationUserModel describes the application user data model.
 type ResourceApplicationUserModel struct {
 	ID     types.String `tfsdk:"id"`
 	AppID  types.String `tfsdk:"app_id"`
