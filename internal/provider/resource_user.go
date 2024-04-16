@@ -231,14 +231,7 @@ func (r *ResourceUser) Delete(ctx context.Context, req resource.DeleteRequest, r
 }
 
 func (r *ResourceUser) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	if req.ID == "" {
-		resp.Diagnostics.AddError(
-			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: user_id. Got: %q", req.ID),
-		)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func parseUserProfileResponse(res *client.UserProfileResponse, data *UserModel) {
