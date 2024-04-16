@@ -220,12 +220,12 @@ func (r *ResourceUser) Delete(ctx context.Context, req resource.DeleteRequest, r
 	id := data.ID.ValueString()
 	httpResp, err := r.client.DeleteUserRoleInOrgWithResponse(ctx, r.orgId, id)
 	if err != nil {
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete service user, got error: %s", err))
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete user, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() != 204 {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to delete value, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to delete user, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 }

@@ -21,7 +21,7 @@ func TestAccResourceUser(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccResourceUser(name, role, userType),
+				Config: testAccCreateResourceUser(name, role, userType),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_user.test", "name", name),
 					resource.TestCheckResourceAttr("humanitec_user.test", "role", role),
@@ -40,7 +40,7 @@ func TestAccResourceUser(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccResourceUser(name, newRole, userType),
+				Config: testAccCreateResourceUser(name, newRole, userType),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_user.test", "name", name),
 					resource.TestCheckResourceAttr("humanitec_user.test", "role", newRole),
@@ -52,7 +52,7 @@ func TestAccResourceUser(t *testing.T) {
 	})
 }
 
-func testAccResourceUser(name, role, userType string) string {
+func testAccCreateResourceUser(name, role, userType string) string {
 	return fmt.Sprintf(`
 resource "humanitec_user" "test" {
 	name = "%s"
