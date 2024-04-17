@@ -14,7 +14,7 @@ func TestAccResourceServiceUserToken(t *testing.T) {
 		tokenId     = "test-token-id"
 		description = "Test token description"
 	)
-	expiresAt := time.Now().Add(24 * time.Hour).Format("2006-01-02T15:04:05.999Z")
+	expiresAt := time.Now().Add(24 * time.Hour).Format("2006-01-02T15:04:05Z")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
