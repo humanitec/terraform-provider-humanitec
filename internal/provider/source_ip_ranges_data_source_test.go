@@ -15,8 +15,8 @@ func TestAccSourceIPRangesDataSource(t *testing.T) {
 			{
 				Config: testAccSourceIPRangesDataSourceConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.humanitec_source_ip_ranges.test", "cidr_blocks.0", "34.141.77.162/32"),
-					resource.TestCheckResourceAttr("data.humanitec_source_ip_ranges.test", "cidr_blocks.#", "6"),
+					resource.TestCheckResourceAttr("data.humanitec_source_ip_ranges.test", "cidr_blocks.0", "34.141.184.227/32"),
+					resource.TestCheckResourceAttr("data.humanitec_source_ip_ranges.test", "cidr_blocks.#", "12"),
 				),
 			},
 		},

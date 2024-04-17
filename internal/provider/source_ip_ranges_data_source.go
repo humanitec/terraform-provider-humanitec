@@ -92,6 +92,13 @@ func (d *SourceIPRangesDataSource) Read(ctx context.Context, req datasource.Read
 		"34.89.188.214/32",
 		"34.159.140.35/32",
 		"34.89.165.141/32",
+
+		"34.32.134.107/32",
+		"34.91.7.12/32",
+		"34.91.109.253/32",
+		"34.141.184.227/32",
+		"34.147.1.204/32",
+		"35.204.216.33/32",
 	}
 
 	data.ID = types.StringValue(hashcode.Strings(humanitecSourceIPBlocks))
