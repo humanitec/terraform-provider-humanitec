@@ -26,7 +26,7 @@ resource "humanitec_application_user" "another_owner" {
 ### Required
 
 - `app_id` (String) The Application ID.
-- `role` (String) The role that this user holds
+- `role` (String) The role that this user holds. Could be `viewer`, `developer` or `owner`.
 - `user_id` (String) The user ID that hold the role
 
 ### Optional

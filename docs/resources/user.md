@@ -18,8 +18,8 @@ An entity or individual who has access to the Humanitec platform.
 ### Required
 
 - `name` (String) The name the user goes by.
-- `role` (String) The role that the service user should have on the organization it is created in.
-- `type` (String) The type of the account. Could be user, service or system.
+- `role` (String) The role that the service user should have on the organization it is created in. Could be member`, `artefactcontributor`, `manager` or `administrator`.
+- `type` (String) The type of the account. Could be `user`, `service` or `system`.
 
 ### Optional
 
