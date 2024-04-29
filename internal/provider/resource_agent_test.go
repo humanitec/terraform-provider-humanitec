@@ -27,7 +27,7 @@ func TestAccAgent(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccCreateAgent(t, id, description, publicKeyOne, publicKeyTwo),
+				Config: testAccCreateAgent(id, description, publicKeyOne, publicKeyTwo),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_agent.agent_test", "description", description),
 					resource.TestCheckResourceAttr("humanitec_agent.agent_test", "public_keys.#", "2"),
@@ -56,7 +56,7 @@ func TestAccAgent(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccCreateAgent(t, id, "", publicKeyOne, publicKeyThree),
+				Config: testAccCreateAgent(id, "", publicKeyOne, publicKeyThree),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_agent.agent_test", "description", ""),
 					resource.TestCheckResourceAttr("humanitec_agent.agent_test", "public_keys.#", "2"),
@@ -80,7 +80,7 @@ func TestAccAgent(t *testing.T) {
 
 }
 
-func testAccCreateAgent(t *testing.T, id, description string, publicKey, otherPublicKey string) string {
+func testAccCreateAgent(id, description string, publicKey, otherPublicKey string) string {
 	return fmt.Sprintf(`
 	resource "humanitec_agent" "agent_test" {
 		id      = "%s"

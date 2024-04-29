@@ -12,7 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/humanitec/humanitec-go-autogen"
@@ -57,6 +59,9 @@ func (*Agent) Schema(ctx context.Context, req resource.SchemaRequest, resp *reso
 			"id": schema.StringAttribute{
 				MarkdownDescription: "The ID of the Agent.",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "A description to show future users. It can be empty.",
@@ -102,7 +107,7 @@ func (a *Agent) Configure(ctx context.Context, req resource.ConfigureRequest, re
 	a.orgId = resdata.OrgID
 }
 
-func (a *AgentModel) updateFromContent(ctx context.Context, res *client.Agent, keys *[]client.Key) {
+func (a *AgentModel) updateFromContent(res *client.Agent, keys *[]client.Key) {
 	a.ID = types.StringValue(res.Id)
 	if res.Description == nil {
 		a.Description = types.StringValue("")
@@ -181,7 +186,7 @@ func (a *Agent) Create(ctx context.Context, req resource.CreateRequest, resp *re
 			keys = append(keys, *registeredKey)
 		}
 	}
-	data.updateFromContent(ctx, agent, &keys)
+	data.updateFromContent(agent, &keys)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 }
@@ -225,7 +230,7 @@ func (a *Agent) Read(ctx context.Context, req resource.ReadRequest, resp *resour
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	data.updateFromContent(ctx, agent, registeredKeys)
+	data.updateFromContent(agent, registeredKeys)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -303,7 +308,7 @@ func (a *Agent) Update(ctx context.Context, req resource.UpdateRequest, resp *re
 		}
 		keys = append(keys, *registeredKey)
 	}
-	data.updateFromContent(ctx, agent, &keys)
+	data.updateFromContent(agent, &keys)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
