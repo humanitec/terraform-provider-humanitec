@@ -174,32 +174,20 @@ func (r *ResourceEnvironmentTypeUser) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	var httpResp *client.GetUserRoleInEnvTypeResponse
-	err := retry.RetryContext(ctx, defaultEnvironmentTypeUserReadTimeout, func() *retry.RetryError {
-		var err error
-		httpResp, err = r.client.GetUserRoleInEnvTypeWithResponse(ctx, r.orgId, data.EnvTypeID.ValueString(), data.UserID.ValueString())
-		if err != nil {
-			return retry.NonRetryableError(err)
-		}
-
-		if httpResp.StatusCode() == 404 {
-			return retry.RetryableError(fmt.Errorf("waiting for application to be ready, status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-		}
-
-		if httpResp.StatusCode() != 200 {
-			return retry.NonRetryableError(fmt.Errorf("unable to read resource environment type user, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-		}
-
-		return nil
-	})
+	httpResp, err := r.client.GetUserRoleInEnvTypeWithResponse(ctx, r.orgId, data.EnvTypeID.ValueString(), data.UserID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource environment type user, got error: %s", err))
 		return
 	}
 
 	if httpResp.StatusCode() == 404 {
-		resp.Diagnostics.AddWarning("Application user not found", fmt.Sprintf("The application user (%s) was deleted outside Terraform", data.ID.ValueString()))
+		resp.Diagnostics.AddWarning("Environment Type user not found", fmt.Sprintf("The environment type user (%s) was deleted outside Terraform", data.ID.ValueString()))
 		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	if httpResp.StatusCode() != 200 {
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to get environment type user, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 
