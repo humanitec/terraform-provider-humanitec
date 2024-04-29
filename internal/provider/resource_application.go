@@ -77,7 +77,7 @@ func (r *ResourceApplication) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"env": schema.SingleNestedAttribute{
-				MarkdownDescription: "Initial environment to create. Will be `development` by default.",
+				MarkdownDescription: "Initial environment to create. Will be `development` by default. **Warning**: Change `env` value after creation will force destroy this resource and his dependencies (include environments, values, webhook, workloads, etc.).",
 				Optional:            true,
 				PlanModifiers: []planmodifier.Object{
 					objectplanmodifier.RequiresReplace(),
