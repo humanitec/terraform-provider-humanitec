@@ -167,6 +167,11 @@ func (r *ResourceUser) Read(ctx context.Context, req resource.ReadRequest, resp 
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read user, got error: %s", err))
 		return
 	}
+	if httpResp.StatusCode() == 404 {
+		resp.Diagnostics.AddWarning("User not found", fmt.Sprintf("The user (%s) was deleted outside Terraform", data.ID.ValueString()))
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if httpResp.StatusCode() != 200 {
 		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read user, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return

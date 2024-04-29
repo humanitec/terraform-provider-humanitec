@@ -175,23 +175,8 @@ func (r *ResourceApplicationUser) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	var httpResp *client.GetUserRoleInAppResponse
-	err := retry.RetryContext(ctx, defaultApplicationUserReadTimeout, func() *retry.RetryError {
-		var err error
-		httpResp, err = r.client.GetUserRoleInAppWithResponse(ctx, r.orgId, data.AppID.ValueString(), data.UserID.ValueString())
-		if err != nil {
-			return retry.NonRetryableError(err)
-		}
 
-		if httpResp.StatusCode() == 404 {
-			return retry.RetryableError(fmt.Errorf("waiting for application to be ready, status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-		}
-
-		if httpResp.StatusCode() != 200 {
-			return retry.NonRetryableError(fmt.Errorf("unable to read resource application user, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
-		}
-
-		return nil
-	})
+	httpResp, err := r.client.GetUserRoleInAppWithResponse(ctx, r.orgId, data.AppID.ValueString(), data.UserID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource application user, got error: %s", err))
 		return
@@ -200,6 +185,11 @@ func (r *ResourceApplicationUser) Read(ctx context.Context, req resource.ReadReq
 	if httpResp.StatusCode() == 404 {
 		resp.Diagnostics.AddWarning("Application user not found", fmt.Sprintf("The application user (%s) was deleted outside Terraform", data.ID.ValueString()))
 		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	if httpResp.StatusCode() != 200 {
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to get application user, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
 	}
 

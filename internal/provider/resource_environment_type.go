@@ -136,6 +136,12 @@ func (r *ResourceEnvironmentType) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
+	if httpResp.StatusCode() == 404 {
+		resp.Diagnostics.AddWarning("Environment Type not found", fmt.Sprintf("The environment type (%s) was deleted outside Terraform", data.ID.ValueString()))
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	if httpResp.StatusCode() != 200 {
 		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read environment type, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
