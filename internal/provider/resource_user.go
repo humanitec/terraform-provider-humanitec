@@ -58,11 +58,11 @@ func (r *ResourceUser) Schema(ctx context.Context, req resource.SchemaRequest, r
 				},
 			},
 			"role": schema.StringAttribute{
-				MarkdownDescription: "The role that the service user should have on the organization it is created in.",
+				MarkdownDescription: "The role that the service user should have on the organization it is created in. Could be member`, `artefactcontributor`, `manager` or `administrator`.",
 				Required:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The type of the account. Could be user, service or system.",
+				MarkdownDescription: "The type of the account. Could be `user`, `service` or `system`.",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("service"),

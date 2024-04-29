@@ -79,7 +79,7 @@ func (r *ResourceApplicationUser) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"role": schema.StringAttribute{
-				MarkdownDescription: "The role that this user holds",
+				MarkdownDescription: "The role that this user holds. Could be `viewer`, `developer` or `owner`.",
 				Required:            true,
 			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
