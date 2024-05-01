@@ -79,7 +79,7 @@ func (r *ResourceEnvironmentTypeUser) Schema(ctx context.Context, req resource.S
 				},
 			},
 			"role": schema.StringAttribute{
-				MarkdownDescription: "The role that this user holds. Could be `developer` (default) or `owner`.",
+				MarkdownDescription: "The role that this user holds. At this time, only `deployer` is supported.",
 				Required:            true,
 			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
