@@ -152,12 +152,12 @@ func TestAccResourceDefinition(t *testing.T) {
 			},
 			resourceAttrNameIDValue:      "s3-test-with-secrets",
 			resourceAttrNameUpdateKey:    "driver_inputs.secret_refs",
-			resourceAttrNameUpdateValue1: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
+			resourceAttrNameUpdateValue1: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\",\"version\":\"1\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\",\"version\":\"1\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
 			resourceAttrName:             "humanitec_resource_definition.s3_test_with_secrets",
 			configUpdate: func() string {
 				return testAccResourceDefinitionS3taticResourceWithSecrets("accessKeyId2", "secretAccessKey2")
 			},
-			resourceAttrNameUpdateValue2: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
+			resourceAttrNameUpdateValue2: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\",\"version\":\"2\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\",\"version\":\"2\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
 		},
 	}
 
