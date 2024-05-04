@@ -26,7 +26,7 @@ resource "humanitec_environment_type_user" "another_deployer" {
 ### Required
 
 - `env_type_id` (String) The Environment Type.
-- `role` (String) The role that this user holds. Could be `developer` (default) or `owner`.
+- `role` (String) The role that this user holds. At this time, only `deployer` is supported.
 - `user_id` (String) The user ID that hold the role
 
 ### Optional
