@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/humanitec/humanitec-go-autogen"
 	"github.com/humanitec/humanitec-go-autogen/client"
@@ -122,12 +121,17 @@ func (r *ResourceRegistry) Configure(ctx context.Context, req resource.Configure
 	r.orgID = resdata.OrgID
 }
 
+type RegistryCredsModel struct {
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
+}
+
 type RegistryModel struct {
 	ID       types.String             `tfsdk:"id"`
 	Registry types.String             `tfsdk:"registry"`
 	Type     types.String             `tfsdk:"type"`
 	EnableCI types.Bool               `tfsdk:"enable_ci"`
-	Creds    types.Object             `tfsdk:"creds"`
+	Creds    *RegistryCredsModel      `tfsdk:"creds"`
 	Secrets  *map[string]SecretsModel `tfsdk:"secrets"`
 }
 
@@ -146,7 +150,7 @@ func (r *ResourceRegistry) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	request, diags := parseRegistryModel(ctx, data)
+	request, diags := parseRegistryModel(data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -172,7 +176,7 @@ func (r *ResourceRegistry) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	diags = parseRegistryResponse(ctx, registry, data)
+	diags = parseRegistryResponse(registry, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -185,12 +189,8 @@ func (r *ResourceRegistry) Create(ctx context.Context, req resource.CreateReques
 func (r *ResourceRegistry) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data *RegistryModel
 
-	tflog.Info(ctx, fmt.Sprintf("start"))
-
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	tflog.Info(ctx, fmt.Sprintf("data: %v", data))
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -205,7 +205,6 @@ func (r *ResourceRegistry) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	tflog.Info(ctx, fmt.Sprintf("resp: %v", getRegistryResp.JSON200))
 	switch getRegistryResp.StatusCode() {
 	case http.StatusOK:
 		registry = getRegistryResp.JSON200
@@ -218,8 +217,7 @@ func (r *ResourceRegistry) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	diags := parseRegistryResponse(ctx, registry, data)
-	tflog.Info(ctx, fmt.Sprintf("parse: %v", data))
+	diags := parseRegistryResponse(registry, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -241,7 +239,7 @@ func (r *ResourceRegistry) Update(ctx context.Context, req resource.UpdateReques
 
 	id := state.ID.ValueString()
 
-	request, diags := parseRegistryModel(ctx, data)
+	request, diags := parseRegistryModel(data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -273,7 +271,7 @@ func (r *ResourceRegistry) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	diags = parseRegistryResponse(ctx, registry, data)
+	diags = parseRegistryResponse(registry, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -329,17 +327,14 @@ func (r *ResourceRegistry) ImportState(ctx context.Context, req resource.ImportS
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }
 
-func parseRegistryModel(ctx context.Context, data *RegistryModel) (*client.RegistryRequest, diag.Diagnostics) {
+func parseRegistryModel(data *RegistryModel) (*client.RegistryRequest, diag.Diagnostics) {
 	totalDiags := diag.Diagnostics{}
 
 	var creds *client.AccountCredsRequest
-	if !data.Creds.IsNull() {
-		dataCreds := data.Creds.Attributes()
-		password := dataCreds["password"].String()
-		username := dataCreds["username"].String()
+	if data.Creds != nil {
 		creds = &client.AccountCredsRequest{
-			Password: password,
-			Username: username,
+			Password: data.Creds.Password.ValueString(),
+			Username: data.Creds.Username.ValueString(),
 		}
 	}
 
@@ -365,7 +360,7 @@ func parseRegistryModel(ctx context.Context, data *RegistryModel) (*client.Regis
 	}, totalDiags
 }
 
-func parseRegistryResponse(ctx context.Context, res *client.RegistryResponse, data *RegistryModel) diag.Diagnostics {
+func parseRegistryResponse(res *client.RegistryResponse, data *RegistryModel) diag.Diagnostics {
 	totalDiags := diag.Diagnostics{}
 
 	data.ID = types.StringValue(res.Id)
