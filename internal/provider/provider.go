@@ -120,8 +120,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 			"Terraform was unable to read config file mentioned "+
 				"in the config attribute.",
 		)
-		// Not returning early allows the logic to collect all errors.
-		configFilePath = ""
+		return
 	}
 
 	if configFilePath != "" {
@@ -132,7 +131,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 				"Terraform was unable to read the yaml config file "+
 					"in "+configFilePath,
 			)
-			// Not returning early allows the logic to collect all errors.
+			return
 		}
 
 		err = yaml.Unmarshal(file, &c)
@@ -150,18 +149,20 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 	token := c.Token
 
 	// Environment variables have precedence over config file, if found
+	if hostOld := os.Getenv("HUMANITEC_HOST"); hostOld != "" {
+		apiPrefix = hostOld
+		resp.Diagnostics.AddWarning(
+			"Environment variable HUMANITEC_HOST has been deprecated",
+			"Environment variable HUMANITEC_HOST has been deprecated "+
+				"please use HUMANITEC_API_PREFIX instead to set your api prefix to the terraform driver.")
+	}
+
 	if os.Getenv("HUMANITEC_API_PREFIX") != "" {
 		apiPrefix = os.Getenv("HUMANITEC_API_PREFIX")
-	} else {
-		if hostOld := os.Getenv("HUMANITEC_HOST"); hostOld != "" {
-			apiPrefix = hostOld
-			resp.Diagnostics.AddWarning(
-				"Environment variable HUMANITEC_HOST has been deprecated",
-				"Environment variable HUMANITEC_HOST has been deprecated "+
-					"please use HUMANITEC_API_PREFIX instead to set your api prefix to the terraform driver.")
-		} else {
-			apiPrefix = humanitec.DefaultAPIHost
-		}
+	}
+
+	if apiPrefix == "" {
+		apiPrefix = humanitec.DefaultAPIHost
 	}
 
 	if os.Getenv("HUMANITEC_ORG") != "" {
@@ -174,21 +175,23 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 
 	// Check configuration data, which should take precedence over
 	// environment variable data and config file, if found.
-	if data.APIPrefix.ValueString() != "" {
-		apiPrefix = data.APIPrefix.ValueString()
-	} else if data.Host.ValueString() != "" {
+
+	if data.Host.ValueString() != "" {
 		apiPrefix = data.Host.ValueString()
 		resp.Diagnostics.AddWarning(
 			"Attribute host has been deprecated",
 			"Attribute hostT has been deprecated "+
 				"please use api_prefix instead to set your api prefix to the terraform driver.")
 	}
+	if !data.APIPrefix.IsNull() {
+		apiPrefix = data.APIPrefix.ValueString()
+	}
 
-	if data.OrgID.ValueString() != "" {
+	if !data.OrgID.IsNull() {
 		orgID = data.OrgID.ValueString()
 	}
 
-	if data.Token.ValueString() != "" {
+	if !data.Token.IsNull() {
 		token = data.Token.ValueString()
 	}
 
