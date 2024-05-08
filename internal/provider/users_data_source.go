@@ -22,15 +22,15 @@ func NewUsersDataSource() datasource.DataSource {
 	return &UsersDataSource{}
 }
 
-// SourceIPRangesDataSource defines the data source implementation.
+// UsersDataSource defines the data source implementation.
 type UsersDataSource struct {
 	client *humanitec.Client
 	orgId  string
 }
 
-// SourceIPRangesDataSourceModel describes the data source data model.
+// UsersDataSourceModel describes the data source data model.
 type UsersDataSourceModel struct {
-	ID         types.String `tfsdk:"id"`
+	ID     types.String `tfsdk:"id"`
 	Filter types.Object `tfsdk:"filter"`
 	Users  types.List   `tfsdk:"users"`
 }
@@ -173,7 +173,7 @@ func matchesFilters(ctx context.Context, filter basetypes.ObjectValue, userRole 
 		diags := filter.As(ctx, &parsedFilter, basetypes.ObjectAsOptions{})
 		if len(diags) != 0 {
 			return false, diags
-		} 
+		}
 
 		id = parsedFilter.Id.ValueStringPointer()
 		name = parsedFilter.Name.ValueStringPointer()

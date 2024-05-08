@@ -23,7 +23,9 @@ provider "humanitec" {
 
 ### Optional
 
+- `api_prefix` (String) Humanitec API prefix (or using the `HUMANITEC_API_PREFIX` environment variable)
+- `config` (String) Location of Humanitec configuration
 - `disable_ssl_certificate_verification` (Boolean) Disables SSL certificate verification
-- `host` (String) Humanitec API host (or using the `HUMANITEC_HOST` environment variable)
+- `host` (String, Deprecated) Humanitec API host (or using the `HUMANITEC_HOST` environment variable)
 - `org_id` (String) Humanitec Organization ID (or using the `HUMANITEC_ORG` environment variable)
 - `token` (String, Sensitive) Humanitec Token (or using the `HUMANITEC_TOKEN` environment variable)

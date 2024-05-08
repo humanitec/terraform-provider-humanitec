@@ -1,5 +1,11 @@
 package provider
 
+type Config struct {
+	ApiPrefix string `json:"apiPrefix,omitempty"`
+	Org       string `json:"org,omitempty"`
+	Token     string `json:"token,omitempty"`
+}
+
 func valueAtPath[T any](input map[string]interface{}, path []string) (T, bool) {
 	lenPath := len(path)
 

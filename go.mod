@@ -14,6 +14,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0
 	github.com/humanitec/humanitec-go-autogen v0.0.0-20240429100802-283cee98d746
 	github.com/stretchr/testify v1.9.0
+	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
