@@ -27,9 +27,11 @@ type HumanitecProvider struct {
 
 // HumanitecProviderModel describes the provider data model.
 type HumanitecProviderModel struct {
-	Host  types.String `tfsdk:"host"`
-	OrgID types.String `tfsdk:"org_id"`
-	Token types.String `tfsdk:"token"`
+	APIPrefix types.String `tfsdk:"api_prefix"`
+	Host      types.String `tfsdk:"host"`
+	OrgID     types.String `tfsdk:"org_id"`
+	Token     types.String `tfsdk:"token"`
+	Config    types.String `tfsdk:"config"`
 
 	DisableSSLCertificateVerification types.Bool `tfsdk:"disable_ssl_certificate_verification"`
 }
@@ -51,9 +53,14 @@ func (p *HumanitecProvider) Schema(ctx context.Context, req provider.SchemaReque
 		MarkdownDescription: "Terraform Provider for [Humanitec](https://humanitec.com/).",
 
 		Attributes: map[string]schema.Attribute{
+			"api_prefix": schema.StringAttribute{
+				MarkdownDescription: "Humanitec API prefix (or using the `HUMANITEC_API_PREFIX` environment variable)",
+				Optional:            true,
+			},
 			"host": schema.StringAttribute{
 				MarkdownDescription: "Humanitec API host (or using the `HUMANITEC_HOST` environment variable)",
 				Optional:            true,
+				DeprecationMessage:  "This attribute is deprecated in favor of api_prefix (`HUMANITEC_API_PREFIX` environment variable).",
 			},
 			"org_id": schema.StringAttribute{
 				MarkdownDescription: "Humanitec Organization ID (or using the `HUMANITEC_ORG` environment variable)",
@@ -68,20 +75,15 @@ func (p *HumanitecProvider) Schema(ctx context.Context, req provider.SchemaReque
 				MarkdownDescription: "Disables SSL certificate verification",
 				Optional:            true,
 			},
+			"config": schema.StringAttribute{
+				MarkdownDescription: "Location of Humanitec configuration",
+				Optional:            true,
+			},
 		},
 	}
 }
 
 func (p *HumanitecProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	// Check environment variables
-	host := os.Getenv("HUMANITEC_HOST")
-	if host == "" {
-		host = humanitec.DefaultAPIHost
-	}
-
-	orgID := os.Getenv("HUMANITEC_ORG")
-	token := os.Getenv("HUMANITEC_TOKEN")
-
 	var data HumanitecProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -90,15 +92,61 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	// Check configuration data, which should take precedence over
-	// environment variable data, if found.
-	if data.Host.ValueString() != "" {
-		host = data.Host.ValueString()
+	// Reading config or .humctl file in the home directory of the system
+	config, diags := readConfig(data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	if data.OrgID.ValueString() != "" {
+
+	apiPrefix := config.ApiPrefix
+	orgID := config.Org
+	token := config.Token
+
+	// Environment variables have precedence over config file, if found
+	if hostOld := os.Getenv("HUMANITEC_HOST"); hostOld != "" {
+		apiPrefix = hostOld
+		resp.Diagnostics.AddWarning(
+			"Environment variable HUMANITEC_HOST has been deprecated",
+			"Environment variable HUMANITEC_HOST has been deprecated "+
+				"please use HUMANITEC_API_PREFIX instead to set your api prefix to the terraform driver.")
+	}
+
+	if os.Getenv("HUMANITEC_API_PREFIX") != "" {
+		apiPrefix = os.Getenv("HUMANITEC_API_PREFIX")
+	}
+
+	if apiPrefix == "" {
+		apiPrefix = humanitec.DefaultAPIHost
+	}
+
+	if os.Getenv("HUMANITEC_ORG") != "" {
+		orgID = os.Getenv("HUMANITEC_ORG")
+	}
+
+	if os.Getenv("HUMANITEC_TOKEN") != "" {
+		token = os.Getenv("HUMANITEC_TOKEN")
+	}
+
+	// Check configuration data, which should take precedence over
+	// environment variable data and config file, if found.
+
+	if data.Host.ValueString() != "" {
+		apiPrefix = data.Host.ValueString()
+		resp.Diagnostics.AddWarning(
+			"Attribute host has been deprecated",
+			"Attribute hostT has been deprecated "+
+				"please use api_prefix instead to set your api prefix to the terraform driver.")
+	}
+	if !data.APIPrefix.IsNull() {
+		apiPrefix = data.APIPrefix.ValueString()
+	}
+
+	if !data.OrgID.IsNull() {
 		orgID = data.OrgID.ValueString()
 	}
-	if data.Token.ValueString() != "" {
+
+	if !data.Token.IsNull() {
 		token = data.Token.ValueString()
 	}
 
@@ -132,7 +180,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		doer = &http.Client{}
 	}
 
-	client, err := NewHumanitecClient(host, token, p.version, doer)
+	client, err := NewHumanitecClient(apiPrefix, token, p.version, doer)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create Humanitec client", err.Error())
 	}
