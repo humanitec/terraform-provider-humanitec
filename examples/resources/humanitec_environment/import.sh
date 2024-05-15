@@ -1,0 +1,1 @@
+terraform import humanitec_environment.example application_id/environment_id

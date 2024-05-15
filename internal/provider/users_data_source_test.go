@@ -29,7 +29,7 @@ func TestAccUsersDataSource(t *testing.T) {
 	})
 }
 
-func testAccCreateUsersDataSourceConfig(email string) string { 
+func testAccCreateUsersDataSourceConfig(email string) string {
 	filtersString := ""
 	if email != "" {
 		filtersString = fmt.Sprintf(`filter = {

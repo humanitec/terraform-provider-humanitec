@@ -207,6 +207,7 @@ func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Res
 		NewResourceArtefactVersion,
 		NewResourceDefinitionCriteriaResource,
 		NewResourceDefinitionResource,
+		NewResourceEnvironment,
 		NewResourceEnvironmentType,
 		NewResourceEnvironmentTypeUser,
 		NewResourceKey,
