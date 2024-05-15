@@ -62,7 +62,7 @@ func (r *ResourceUser) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Required:            true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "The type of the account. Could be `user`, `service` or `system`.",
+				MarkdownDescription: "The type of the account. Only users type `service` can be managed by Terraform.",
 				Required:            true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("service"),
