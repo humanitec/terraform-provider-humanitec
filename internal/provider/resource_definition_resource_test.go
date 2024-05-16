@@ -18,6 +18,7 @@ func TestAccResourceDefinition(t *testing.T) {
 		resourceAttrNameUpdateKey    string
 		resourceAttrNameUpdateValue1 string
 		resourceAttrNameUpdateValue2 string
+		importStateVerifyIgnore      []string
 	}{
 		{
 			name: "S3",
@@ -32,6 +33,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionS3Resource("us-east-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"region\":\"us-east-2\"}",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
 			name: "Postgres",
@@ -46,6 +48,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionPostgresResource("test-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"host\":\"127.0.0.1\",\"instance\":\"test:test:test\",\"name\":\"test-2\",\"port\":5432}",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
 			name: "GKE",
@@ -60,6 +63,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionGKEResource("test-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"loadbalancer\":\"1.1.1.1\",\"name\":\"test-2\",\"project_id\":\"test\",\"zone\":\"europe-west3\"}",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
 			name: "DNS",
@@ -74,6 +78,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionDNSStaticResource("test-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"host\":\"test-2\"}",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
 			name: "Ingress",
@@ -88,6 +93,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionIngressResource("test-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"labels\":{\"name\":\"test-2\"},\"no_tls\":true}",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
 			name: "Provision",
@@ -102,6 +108,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionProvisionResource("false")
 			},
 			resourceAttrNameUpdateValue2: "false",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
 			name: "k8s-logging",
@@ -116,6 +123,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionK8sLoggingResource("test-2")
 			},
 			resourceAttrNameUpdateValue2: "test-2",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
 			name: "S3 static - secret refs",
@@ -130,6 +138,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionS3taticResourceWithSecretRefs("accessKeyIdPath2", "secretAccessKeyPath2")
 			},
 			resourceAttrNameUpdateValue2: "{\"aws_access_key_id\":{\"ref\":\"accessKeyIdPath2\",\"store\":\"external-secret-store\",\"version\":\"1\"},\"aws_secret_access_key\":{\"ref\":\"secretAccessKeyPath2\",\"store\":\"external-secret-store\",\"version\":\"1\"}}",
+			importStateVerifyIgnore:      []string{"force_delete"},
 		},
 		{
 			name: "S3 static - secret ref set values",
@@ -144,6 +153,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionS3taticResourceWithSecretRefValues("accessKeyId2", "secretAccessKey2")
 			},
 			resourceAttrNameUpdateValue2: "{\"aws_access_key_id\":{\"value\":\"accessKeyId2\"},\"aws_secret_access_key\":{\"value\":\"secretAccessKey2\"}}",
+			importStateVerifyIgnore:      []string{"driver_inputs.secret_refs", "force_delete"},
 		},
 		{
 			name: "S3 static - secrets",
@@ -158,6 +168,7 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionS3taticResourceWithSecrets("accessKeyId2", "secretAccessKey2")
 			},
 			resourceAttrNameUpdateValue2: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\",\"version\":\"2\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\",\"version\":\"2\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 	}
 
@@ -180,7 +191,7 @@ func TestAccResourceDefinition(t *testing.T) {
 						ResourceName:            tc.resourceAttrName,
 						ImportState:             true,
 						ImportStateVerify:       true,
-						ImportStateVerifyIgnore: []string{"driver_inputs.secrets_string", "driver_inputs.secret_refs", "force_delete"},
+						ImportStateVerifyIgnore: tc.importStateVerifyIgnore,
 					},
 					// Update and Read testing
 					{

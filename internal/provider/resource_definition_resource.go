@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
@@ -255,15 +256,17 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 		data.DriverInputs.ValuesString = types.StringValue(string(b))
 	}
 
-	if data.DriverInputs != nil && data.DriverInputs.SecretRefs.IsUnknown() {
+	if data.DriverInputs != nil {
 		if driverInputs.SecretRefs == nil {
 			data.DriverInputs.SecretRefs = types.StringNull()
 		} else {
-			b, err := json.Marshal(driverInputs.SecretRefs)
-			if err != nil {
-				diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal secret_refs: %s", err.Error()))
+			if !strings.Contains(data.DriverInputs.SecretRefs.ValueString(), `{"value":"`) {
+				b, err := json.Marshal(driverInputs.SecretRefs)
+				if err != nil {
+					diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal secret_refs: %s", err.Error()))
+				}
+				data.DriverInputs.SecretRefs = types.StringValue(string(b))
 			}
-			data.DriverInputs.SecretRefs = types.StringValue(string(b))
 		}
 	}
 	return diags
