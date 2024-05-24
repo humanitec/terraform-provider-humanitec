@@ -173,7 +173,7 @@ func (r *ResourceRule) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	httpResp, err := r.client.PostOrgsOrgIdAppsAppIdEnvsEnvIdRulesWithResponse(ctx, r.orgId, appID, envID, *httpBody)
+	httpResp, err := r.client.CreateAutomationRuleWithResponse(ctx, r.orgId, appID, envID, *httpBody)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create rule, got error: %s", err))
 		return
@@ -204,7 +204,7 @@ func (r *ResourceRule) Read(ctx context.Context, req resource.ReadRequest, resp 
 	envID := data.EnvID.ValueString()
 	id := data.ID.ValueString()
 
-	httpResp, err := r.client.GetOrgsOrgIdAppsAppIdEnvsEnvIdRulesWithResponse(ctx, r.orgId, appID, envID)
+	httpResp, err := r.client.GetAutomationRuleWithResponse(ctx, r.orgId, appID, envID, id)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read rule, got error: %s", err))
 		return
@@ -214,27 +214,7 @@ func (r *ResourceRule) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	if httpResp.JSON200 == nil {
-		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read rule, missing body, body: %s", httpResp.Body))
-		return
-	}
-
-	var rule *client.AutomationRuleResponse
-
-	for _, v := range *httpResp.JSON200 {
-		if id == v.Id {
-			rule = &v
-			break
-		}
-	}
-
-	if rule == nil {
-		resp.Diagnostics.AddWarning("Rule not found", fmt.Sprintf("The rule (%s) was deleted outside Terraform", id))
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
-	parseAutomationRuleResponse(rule, data)
+	parseAutomationRuleResponse(httpResp.JSON200, data)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -260,7 +240,7 @@ func (r *ResourceRule) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	httpResp, err := r.client.PutOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleIdWithResponse(ctx, r.orgId, appID, envID, id, *httpBody)
+	httpResp, err := r.client.UpdateAutomationRuleWithResponse(ctx, r.orgId, appID, envID, id, *httpBody)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update rule, got error: %s", err))
 		return
@@ -290,7 +270,7 @@ func (r *ResourceRule) Delete(ctx context.Context, req resource.DeleteRequest, r
 	envID := data.EnvID.ValueString()
 	id := data.ID.ValueString()
 
-	httpResp, err := r.client.DeleteOrgsOrgIdAppsAppIdEnvsEnvIdRulesRuleIdWithResponse(ctx, r.orgId, appID, envID, id)
+	httpResp, err := r.client.DeleteAutomationRuleWithResponse(ctx, r.orgId, appID, envID, id)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to delete rule, got error: %s", err))
 		return

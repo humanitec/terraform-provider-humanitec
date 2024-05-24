@@ -292,7 +292,7 @@ func parseEnvironmentResponse(appID string, res *client.EnvironmentResponse, dat
 	if res.FromDeploy != nil {
 		fromDeployId = &res.FromDeploy.Id
 	}
-	
+
 	data.FromDeployID = types.StringPointerValue(fromDeployId)
 	data.AppID = types.StringValue(appID)
 	data.ID = types.StringValue(res.Id)

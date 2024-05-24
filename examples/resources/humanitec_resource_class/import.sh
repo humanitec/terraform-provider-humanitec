@@ -1,0 +1,1 @@
+terraform import humanitec_resource_class.example resource_type/class_id
