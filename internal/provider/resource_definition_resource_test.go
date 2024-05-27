@@ -1,14 +1,19 @@
 package provider
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccResourceDefinition(t *testing.T) {
+	timestamp := time.Now().UnixNano()
 	tests := []struct {
 		name                         string
 		configCreate                 func() string
@@ -23,14 +28,14 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "S3",
 			configCreate: func() string {
-				return testAccResourceDefinitionS3Resource("us-east-1")
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
 			},
-			resourceAttrNameIDValue:      "s3-test",
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-%d", timestamp),
 			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
 			resourceAttrNameUpdateValue1: "{\"region\":\"us-east-1\"}",
 			resourceAttrName:             "humanitec_resource_definition.s3_test",
 			configUpdate: func() string {
-				return testAccResourceDefinitionS3Resource("us-east-2")
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"region\":\"us-east-2\"}",
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -38,14 +43,14 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "Postgres",
 			configCreate: func() string {
-				return testAccResourceDefinitionPostgresResource("test-1")
+				return testAccResourceDefinitionPostgresResource(fmt.Sprintf("postgres-test-%d", timestamp), "test-1")
 			},
-			resourceAttrNameIDValue:      "postgres-test",
+			resourceAttrNameIDValue:      fmt.Sprintf("postgres-test-%d", timestamp),
 			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
 			resourceAttrNameUpdateValue1: "{\"host\":\"127.0.0.1\",\"instance\":\"test:test:test\",\"name\":\"test-1\",\"port\":5432}",
 			resourceAttrName:             "humanitec_resource_definition.postgres_test",
 			configUpdate: func() string {
-				return testAccResourceDefinitionPostgresResource("test-2")
+				return testAccResourceDefinitionPostgresResource(fmt.Sprintf("postgres-test-%d", timestamp), "test-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"host\":\"127.0.0.1\",\"instance\":\"test:test:test\",\"name\":\"test-2\",\"port\":5432}",
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -53,14 +58,14 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "GKE",
 			configCreate: func() string {
-				return testAccResourceDefinitionGKEResource("test-1")
+				return testAccResourceDefinitionGKEResource(fmt.Sprintf("gke-test-%d", timestamp), "test-1")
 			},
-			resourceAttrNameIDValue:      "gke-test",
+			resourceAttrNameIDValue:      fmt.Sprintf("gke-test-%d", timestamp),
 			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
 			resourceAttrNameUpdateValue1: "{\"loadbalancer\":\"1.1.1.1\",\"name\":\"test-1\",\"project_id\":\"test\",\"zone\":\"europe-west3\"}",
 			resourceAttrName:             "humanitec_resource_definition.gke_test",
 			configUpdate: func() string {
-				return testAccResourceDefinitionGKEResource("test-2")
+				return testAccResourceDefinitionGKEResource(fmt.Sprintf("gke-test-%d", timestamp), "test-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"loadbalancer\":\"1.1.1.1\",\"name\":\"test-2\",\"project_id\":\"test\",\"zone\":\"europe-west3\"}",
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -68,14 +73,14 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "DNS",
 			configCreate: func() string {
-				return testAccResourceDefinitionDNSStaticResource("test-1")
+				return testAccResourceDefinitionDNSStaticResource(fmt.Sprintf("dns-test-%d", timestamp), "test-1")
 			},
-			resourceAttrNameIDValue:      "dns-test",
+			resourceAttrNameIDValue:      fmt.Sprintf("dns-test-%d", timestamp),
 			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
 			resourceAttrNameUpdateValue1: "{\"host\":\"test-1\"}",
 			resourceAttrName:             "humanitec_resource_definition.dns_test",
 			configUpdate: func() string {
-				return testAccResourceDefinitionDNSStaticResource("test-2")
+				return testAccResourceDefinitionDNSStaticResource(fmt.Sprintf("dns-test-%d", timestamp), "test-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"host\":\"test-2\"}",
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -83,14 +88,14 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "Ingress",
 			configCreate: func() string {
-				return testAccResourceDefinitionIngressResource("test-1")
+				return testAccResourceDefinitionIngressResource(fmt.Sprintf("ingress-test-%d", timestamp), "test-1")
 			},
-			resourceAttrNameIDValue:      "ingress-test",
+			resourceAttrNameIDValue:      fmt.Sprintf("ingress-test-%d", timestamp),
 			resourceAttrNameUpdateKey:    "driver_inputs.values_string",
 			resourceAttrNameUpdateValue1: "{\"labels\":{\"name\":\"test-1\"},\"no_tls\":true}",
 			resourceAttrName:             "humanitec_resource_definition.ingress_test",
 			configUpdate: func() string {
-				return testAccResourceDefinitionIngressResource("test-2")
+				return testAccResourceDefinitionIngressResource(fmt.Sprintf("ingress-test-%d", timestamp), "test-2")
 			},
 			resourceAttrNameUpdateValue2: "{\"labels\":{\"name\":\"test-2\"},\"no_tls\":true}",
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -98,14 +103,14 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "Provision",
 			configCreate: func() string {
-				return testAccResourceDefinitionProvisionResource("true")
+				return testAccResourceDefinitionProvisionResource(fmt.Sprintf("provision-test-%d", timestamp), "true")
 			},
-			resourceAttrNameIDValue:      "provision-test",
+			resourceAttrNameIDValue:      fmt.Sprintf("provision-test-%d", timestamp),
 			resourceAttrNameUpdateKey:    "provision.awspolicy.match_dependents",
 			resourceAttrNameUpdateValue1: "true",
 			resourceAttrName:             "humanitec_resource_definition.provision_test",
 			configUpdate: func() string {
-				return testAccResourceDefinitionProvisionResource("false")
+				return testAccResourceDefinitionProvisionResource(fmt.Sprintf("provision-test-%d", timestamp), "false")
 			},
 			resourceAttrNameUpdateValue2: "false",
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -113,14 +118,14 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "k8s-logging",
 			configCreate: func() string {
-				return testAccResourceDefinitionK8sLoggingResource("test-1")
+				return testAccResourceDefinitionK8sLoggingResource(fmt.Sprintf("k8s-logging-test-%d", timestamp), "test-1")
 			},
-			resourceAttrNameIDValue:      "k8s-logging-test",
+			resourceAttrNameIDValue:      fmt.Sprintf("k8s-logging-test-%d", timestamp),
 			resourceAttrNameUpdateKey:    "name",
 			resourceAttrNameUpdateValue1: "test-1",
 			resourceAttrName:             "humanitec_resource_definition.k8s_logging_test",
 			configUpdate: func() string {
-				return testAccResourceDefinitionK8sLoggingResource("test-2")
+				return testAccResourceDefinitionK8sLoggingResource(fmt.Sprintf("k8s-logging-test-%d", timestamp), "test-2")
 			},
 			resourceAttrNameUpdateValue2: "test-2",
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -128,14 +133,14 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "S3 static - secret refs",
 			configCreate: func() string {
-				return testAccResourceDefinitionS3taticResourceWithSecretRefs("accessKeyIdPath1", "secretAccessKeyPath1")
+				return testAccResourceDefinitionS3taticResourceWithSecretRefs(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyIdPath1", "secretAccessKeyPath1")
 			},
-			resourceAttrNameIDValue:      "s3-test-with-secrets",
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-with-secrets-%d", timestamp),
 			resourceAttrNameUpdateKey:    "driver_inputs.secret_refs",
 			resourceAttrNameUpdateValue1: "{\"aws_access_key_id\":{\"ref\":\"accessKeyIdPath1\",\"store\":\"external-secret-store\",\"version\":\"1\"},\"aws_secret_access_key\":{\"ref\":\"secretAccessKeyPath1\",\"store\":\"external-secret-store\",\"version\":\"1\"}}",
 			resourceAttrName:             "humanitec_resource_definition.s3_test_with_secrets",
 			configUpdate: func() string {
-				return testAccResourceDefinitionS3taticResourceWithSecretRefs("accessKeyIdPath2", "secretAccessKeyPath2")
+				return testAccResourceDefinitionS3taticResourceWithSecretRefs(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyIdPath2", "secretAccessKeyPath2")
 			},
 			resourceAttrNameUpdateValue2: "{\"aws_access_key_id\":{\"ref\":\"accessKeyIdPath2\",\"store\":\"external-secret-store\",\"version\":\"1\"},\"aws_secret_access_key\":{\"ref\":\"secretAccessKeyPath2\",\"store\":\"external-secret-store\",\"version\":\"1\"}}",
 			importStateVerifyIgnore:      []string{"force_delete"},
@@ -143,32 +148,17 @@ func TestAccResourceDefinition(t *testing.T) {
 		{
 			name: "S3 static - secret ref set values",
 			configCreate: func() string {
-				return testAccResourceDefinitionS3taticResourceWithSecretRefValues("accessKeyId1", "secretAccessKey1")
+				return testAccResourceDefinitionS3taticResourceWithSecretRefValues(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyId1", "secretAccessKey1")
 			},
-			resourceAttrNameIDValue:      "s3-test-with-secrets",
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-with-secrets-%d", timestamp),
 			resourceAttrNameUpdateKey:    "driver_inputs.secret_refs",
 			resourceAttrNameUpdateValue1: "{\"aws_access_key_id\":{\"value\":\"accessKeyId1\"},\"aws_secret_access_key\":{\"value\":\"secretAccessKey1\"}}",
 			resourceAttrName:             "humanitec_resource_definition.s3_test_with_secrets",
 			configUpdate: func() string {
-				return testAccResourceDefinitionS3taticResourceWithSecretRefValues("accessKeyId2", "secretAccessKey2")
+				return testAccResourceDefinitionS3taticResourceWithSecretRefValues(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyId2", "secretAccessKey2")
 			},
 			resourceAttrNameUpdateValue2: "{\"aws_access_key_id\":{\"value\":\"accessKeyId2\"},\"aws_secret_access_key\":{\"value\":\"secretAccessKey2\"}}",
 			importStateVerifyIgnore:      []string{"driver_inputs.secret_refs", "force_delete"},
-		},
-		{
-			name: "S3 static - secrets",
-			configCreate: func() string {
-				return testAccResourceDefinitionS3taticResourceWithSecrets("accessKeyId1", "secretAccessKey1")
-			},
-			resourceAttrNameIDValue:      "s3-test-with-secrets",
-			resourceAttrNameUpdateKey:    "driver_inputs.secret_refs",
-			resourceAttrNameUpdateValue1: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\",\"version\":\"1\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\",\"version\":\"1\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
-			resourceAttrName:             "humanitec_resource_definition.s3_test_with_secrets",
-			configUpdate: func() string {
-				return testAccResourceDefinitionS3taticResourceWithSecrets("accessKeyId2", "secretAccessKey2")
-			},
-			resourceAttrNameUpdateValue2: fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\",\"version\":\"2\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\",\"version\":\"2\"}}", getDefinitionSecretPath("s3-test-with-secrets"), getDefinitionSecretPath("s3-test-with-secrets")),
-			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 	}
 
@@ -207,10 +197,76 @@ func TestAccResourceDefinition(t *testing.T) {
 	}
 }
 
-func testAccResourceDefinitionS3Resource(region string) string {
+func TestAccResourceDefinition_S3_static_secrets(t *testing.T) {
+	var expectedSecretRef string
+	var expectedSecretRefAfterUpdate string
+	id := fmt.Sprintf("s3-test-with-secrets-%d", time.Now().UnixNano())
+	t.Run("S3 static - secrets", func(t *testing.T) {
+		resource.Test(t, resource.TestCase{
+			PreCheck:                 func() { testAccPreCheck(t) },
+			ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+			Steps: []resource.TestStep{
+				// Create and Read testing
+				{
+					Config: testAccResourceDefinitionS3taticResourceWithSecrets(id, "accessKeyId1", "secretAccessKey1"),
+					Check: resource.ComposeAggregateTestCheckFunc(
+						func(s *terraform.State) error {
+							secretRefsRaw := s.Modules[0].Resources["humanitec_resource_definition.s3_test_with_secrets"].Primary.Attributes["driver_inputs.secret_refs"]
+							var secretRefs struct {
+								AWSAccessKey struct {
+									Ref     string `json:"ref"`
+									Store   string `json:"store"`
+									Version string `json:"version"`
+								} `json:"aws_access_key_id"`
+								AWSSecretKey struct {
+									Ref     string `json:"ref"`
+									Store   string `json:"store"`
+									Version string `json:"version"`
+								} `json:"aws_secret_access_key"`
+							}
+
+							err := json.Unmarshal([]byte(secretRefsRaw), &secretRefs)
+							if err != nil {
+								return err
+							}
+
+							currentVersion, err := strconv.Atoi(secretRefs.AWSAccessKey.Version)
+							if err != nil {
+								return err
+							}
+
+							expectedSecretRef = getDefinitionSecretRef(id, currentVersion)
+							expectedSecretRefAfterUpdate = getDefinitionSecretRef(id, currentVersion+1)
+							return nil
+						},
+						resource.TestCheckResourceAttr("humanitec_resource_definition.s3_test_with_secrets", "id", id),
+						resource.TestCheckResourceAttrPtr("humanitec_resource_definition.s3_test_with_secrets", "driver_inputs.secret_refs", &expectedSecretRef),
+					),
+				},
+				// ImportState testing
+				{
+					ResourceName:            "humanitec_resource_definition.s3_test_with_secrets",
+					ImportState:             true,
+					ImportStateVerify:       true,
+					ImportStateVerifyIgnore: []string{"driver_inputs.secrets_string", "force_delete"},
+				},
+				// Update and Read testing
+				{
+					Config: testAccResourceDefinitionS3taticResourceWithSecrets(id, "accessKeyId2", "secretAccessKey2"),
+					Check: resource.ComposeAggregateTestCheckFunc(
+						resource.TestCheckResourceAttrPtr("humanitec_resource_definition.s3_test_with_secrets", "driver_inputs.secret_refs", &expectedSecretRefAfterUpdate),
+					),
+				},
+				// Delete testing automatically occurs in TestCase
+			},
+		})
+	})
+}
+
+func testAccResourceDefinitionS3Resource(id, region string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "s3_test" {
-  id          = "s3-test"
+  id          = "%s"
   name        = "s3-test"
   type        = "s3"
   driver_type = "humanitec/s3"
@@ -221,13 +277,13 @@ resource "humanitec_resource_definition" "s3_test" {
     })
   }
 }
-`, region)
+`, id, region)
 }
 
-func testAccResourceDefinitionPostgresResource(name string) string {
+func testAccResourceDefinitionPostgresResource(id, name string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "postgres_test" {
-  id          = "postgres-test"
+  id          = "%s"
   name        = "postgres-test"
   type        = "postgres"
   driver_type = "humanitec/postgres-cloudsql-static"
@@ -245,13 +301,13 @@ resource "humanitec_resource_definition" "postgres_test" {
     })
   }
 }
-`, name)
+`, id, name)
 }
 
-func testAccResourceDefinitionGKEResource(name string) string {
+func testAccResourceDefinitionGKEResource(id, name string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "gke_test" {
-  id          = "gke-test"
+  id          = "%s"
   name        = "gke-test"
   type        = "k8s-cluster"
   driver_type = "humanitec/k8s-cluster-gke"
@@ -268,13 +324,13 @@ resource "humanitec_resource_definition" "gke_test" {
     })
   }
 }
-`, name)
+`, id, name)
 }
 
-func testAccResourceDefinitionDNSStaticResource(host string) string {
+func testAccResourceDefinitionDNSStaticResource(id, host string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "dns_test" {
-  id          = "dns-test"
+  id          = "%s"
   name        = "dns-test"
   type        = "dns"
   driver_type = "humanitec/static"
@@ -285,13 +341,13 @@ resource "humanitec_resource_definition" "dns_test" {
     })
   }
 }
-`, host)
+`, id, host)
 }
 
-func testAccResourceDefinitionIngressResource(host string) string {
+func testAccResourceDefinitionIngressResource(id, host string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "ingress_test" {
-  id          = "ingress-test"
+  id          = "%s"
   name        = "ingress-test"
   type        = "ingress"
   driver_type = "humanitec/ingress"
@@ -305,24 +361,24 @@ resource "humanitec_resource_definition" "ingress_test" {
     })
   }
 }
-`, host)
+`, id, host)
 }
 
-func testAccResourceDefinitionK8sLoggingResource(name string) string {
+func testAccResourceDefinitionK8sLoggingResource(id, name string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "k8s_logging_test" {
-  id          = "k8s-logging-test"
+  id          = "%s"
   name        = "%s"
   type        = "logging"
   driver_type = "humanitec/logging-k8s"
 }
-`, name)
+`, id, name)
 }
 
-func testAccResourceDefinitionProvisionResource(matchDependents string) string {
+func testAccResourceDefinitionProvisionResource(id, matchDependents string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "provision_test" {
-	id          = "provision-test"
+	id          = "%s"
 	name        = "provision-test"
 	type        = "s3"
 	driver_type = "humanitec/s3"
@@ -339,13 +395,13 @@ resource "humanitec_resource_definition" "provision_test" {
 		})
 	}
 }
-`, matchDependents)
+`, id, matchDependents)
 }
 
-func testAccResourceDefinitionS3taticResourceWithSecretRefs(awsAccessKeyIDPath, awsSecretAccessKeyPath string) string {
+func testAccResourceDefinitionS3taticResourceWithSecretRefs(id, awsAccessKeyIDPath, awsSecretAccessKeyPath string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "s3_test_with_secrets" {
-  id          = "s3-test-with-secrets"
+  id          = "%s"
   name        = "s3-test-with-secrets"
   type        = "s3"
   driver_type = "humanitec/static"
@@ -369,13 +425,13 @@ resource "humanitec_resource_definition" "s3_test_with_secrets" {
     })
   }
 }
-`, awsAccessKeyIDPath, awsSecretAccessKeyPath)
+`, id, awsAccessKeyIDPath, awsSecretAccessKeyPath)
 }
 
-func testAccResourceDefinitionS3taticResourceWithSecretRefValues(awsAccessKeyIDValue, awsSecretAccessKeyValue string) string {
+func testAccResourceDefinitionS3taticResourceWithSecretRefValues(id, awsAccessKeyIDValue, awsSecretAccessKeyValue string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "s3_test_with_secrets" {
-  id          = "s3-test-with-secrets"
+  id          = "%s"
   name        = "s3-test-with-secrets"
   type        = "s3"
   driver_type = "humanitec/static"
@@ -395,13 +451,13 @@ resource "humanitec_resource_definition" "s3_test_with_secrets" {
     })
   }
 }
-`, awsAccessKeyIDValue, awsSecretAccessKeyValue)
+`, id, awsAccessKeyIDValue, awsSecretAccessKeyValue)
 }
 
-func testAccResourceDefinitionS3taticResourceWithSecrets(awsAccessKeyIDValue, awsSecretAccessKeyValue string) string {
+func testAccResourceDefinitionS3taticResourceWithSecrets(id string, awsAccessKeyIDValue, awsSecretAccessKeyValue string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "s3_test_with_secrets" {
-  id          = "s3-test-with-secrets"
+  id          = "%s"
   name        = "s3-test-with-secrets"
   type        = "s3"
   driver_type = "humanitec/static"
@@ -417,10 +473,14 @@ resource "humanitec_resource_definition" "s3_test_with_secrets" {
     })
   }
 }
-`, awsAccessKeyIDValue, awsSecretAccessKeyValue)
+`, id, awsAccessKeyIDValue, awsSecretAccessKeyValue)
 }
 
 func getDefinitionSecretPath(defID string) string {
 	orgID := os.Getenv("HUMANITEC_ORG")
 	return fmt.Sprintf("orgs/%s/resources/defs/%s/driver_secrets", orgID, defID)
+}
+
+func getDefinitionSecretRef(id string, version int) string {
+	return fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\",\"version\":\"%d\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\",\"version\":\"%d\"}}", getDefinitionSecretPath(id), version, getDefinitionSecretPath(id), version)
 }
