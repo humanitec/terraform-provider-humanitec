@@ -54,9 +54,6 @@ func (r *ResourceEnvironmentType) Schema(ctx context.Context, req resource.Schem
 			"description": schema.StringAttribute{
 				MarkdownDescription: "A Human-readable description of the Environment Type",
 				Optional:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 		},
 	}
