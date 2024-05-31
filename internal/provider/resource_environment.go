@@ -288,12 +288,6 @@ func (r *ResourceEnvironment) ImportState(ctx context.Context, req resource.Impo
 }
 
 func parseEnvironmentResponse(appID string, res *client.EnvironmentResponse, data *EnvironmentModel) {
-	var fromDeployId *string
-	if res.FromDeploy != nil {
-		fromDeployId = &res.FromDeploy.Id
-	}
-
-	data.FromDeployID = types.StringPointerValue(fromDeployId)
 	data.AppID = types.StringValue(appID)
 	data.ID = types.StringValue(res.Id)
 	data.Name = types.StringValue(res.Name)
