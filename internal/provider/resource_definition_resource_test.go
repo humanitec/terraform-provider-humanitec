@@ -26,6 +26,36 @@ func TestAccResourceDefinition(t *testing.T) {
 		importStateVerifyIgnore      []string
 	}{
 		{
+			name: "S3 - update driver_type",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
+			},
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-%d", timestamp),
+			resourceAttrNameUpdateKey:    "driver_type",
+			resourceAttrNameUpdateValue1: "humanitec/s3",
+			resourceAttrName:             "humanitec_resource_definition.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3ResourceWithDifferentDriver(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1", "humanitec/terraform")
+			},
+			resourceAttrNameUpdateValue2: "humanitec/terraform",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
+		},
+		{
+			name: "S3 - check the driver does not change",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
+			},
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-%d", timestamp),
+			resourceAttrNameUpdateKey:    "driver_type",
+			resourceAttrNameUpdateValue1: "humanitec/s3",
+			resourceAttrName:             "humanitec_resource_definition.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
+			},
+			resourceAttrNameUpdateValue2: "humanitec/s3",
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
+		},
+		{
 			name: "S3",
 			configCreate: func() string {
 				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
@@ -278,6 +308,23 @@ resource "humanitec_resource_definition" "s3_test" {
   }
 }
 `, id, region)
+}
+
+func testAccResourceDefinitionS3ResourceWithDifferentDriver(id, region, driver_type string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test" {
+  id          = "%s"
+  name        = "s3-test"
+  type        = "s3"
+  driver_type = "%s"
+
+  driver_inputs = {
+    values_string = jsonencode({
+      "region" = "%s"
+    })
+  }
+}
+`, id, driver_type, region)
 }
 
 func testAccResourceDefinitionPostgresResource(id, name string) string {

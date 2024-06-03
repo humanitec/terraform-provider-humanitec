@@ -108,3 +108,7 @@ func readConfig(data HumanitecProviderModel) (config Config, diags diag.Diagnost
 	}
 	return
 }
+
+func toPtr[T any](value T) *T {
+	return &value
+}

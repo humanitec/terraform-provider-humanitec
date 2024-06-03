@@ -204,7 +204,7 @@ func (r *ResourceDefinitionCriteriaResource) Read(ctx context.Context, req resou
 		return
 	}
 
-	httpResp, err := r.client().GetResourceDefinitionWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString())
+	httpResp, err := r.client().GetResourceDefinitionWithResponse(ctx, r.orgId(), data.ResourceDefinitionID.ValueString(), &client.GetResourceDefinitionParams{toPtr(false)})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource definition, got error: %s", err))
 		return
