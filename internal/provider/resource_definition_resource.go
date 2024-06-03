@@ -397,7 +397,7 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	httpResp, err := r.client().GetResourceDefinitionWithResponse(ctx, r.orgId(), data.ID.ValueString())
+	httpResp, err := r.client().GetResourceDefinitionWithResponse(ctx, r.orgId(), data.ID.ValueString(), &client.GetResourceDefinitionParams{Deleted: toPtr(false)})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read resource definition, got error: %s", err))
 		return
@@ -459,6 +459,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 	provision := provisionFromModel(data.Provision)
 
 	httpResp, err := r.client().UpdateResourceDefinitionWithResponse(ctx, r.orgId(), defID, client.UpdateResourceDefinitionRequestRequest{
+		DriverType:    data.DriverType.ValueStringPointer(),
 		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
 		Name:          name,
