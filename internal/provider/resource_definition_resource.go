@@ -113,9 +113,6 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 			"driver_type": schema.StringAttribute{
 				MarkdownDescription: "The driver to be used to create the resource.",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"driver_account": schema.StringAttribute{
 				MarkdownDescription: "Security account required by the driver.",
