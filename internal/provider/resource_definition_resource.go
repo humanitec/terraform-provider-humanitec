@@ -129,11 +129,13 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 					"secrets_string": schema.StringAttribute{
 						MarkdownDescription: "JSON encoded secret data set. Passed around as-is. Can't be used together with secret_refs.",
 						Optional:            true,
+						Sensitive:           true,
 					},
 					"secret_refs": schema.StringAttribute{
 						MarkdownDescription: "JSON encoded secrets section of the data set. They can hold sensitive information that will be stored in the primary organization secret store and replaced with the secret store paths when sent outside, or secret references stored in a defined secret store. Can't be used together with secrets.",
 						Optional:            true,
 						Computed:            true,
+						Sensitive:           true,
 						Validators: []validator.String{
 							stringvalidator.ConflictsWith(path.Expressions{
 								path.MatchRelative().AtParent().AtName("secrets_string"),
