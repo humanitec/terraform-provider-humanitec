@@ -1,7 +1,10 @@
 package provider
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"maps"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -111,4 +114,20 @@ func readConfig(data HumanitecProviderModel) (config Config, diags diag.Diagnost
 
 func toPtr[T any](value T) *T {
 	return &value
+}
+
+// strictUnmarshal unmarshals the JSON data into the provided value and returns an error if the data contains unknown fields.
+func strictUnmarshal(data []byte, v interface{}) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	return dec.Decode(v)
+}
+
+// overrideMap overrides the base map with the values from the override map.
+func overrideMap[M ~map[K]V, K comparable, V any](base M, override M) {
+	maps.DeleteFunc(base, func(K K, V V) bool {
+		_, ok := override[K]
+		return !ok
+	})
+	maps.Copy(base, override)
 }

@@ -185,7 +185,9 @@ func TestAccResourceDefinition(t *testing.T) {
 			resourceAttrNameIDValue:   fmt.Sprintf("s3-test-with-secrets-%d", timestamp),
 			resourceAttrNameUpdateKey: "driver_inputs.secret_refs",
 			resourceAttrNameUpdateValue1: jsonString(map[string]interface{}{
-				"aws_access_key_id":     map[string]interface{}{"ref": "accessKeyIdPath1", "store": "external-secret-store", "version": "1"},
+				"nested": map[string]interface{}{
+					"aws_access_key_id": map[string]interface{}{"ref": "accessKeyIdPath1", "store": "external-secret-store", "version": "1"},
+				},
 				"aws_secret_access_key": map[string]interface{}{"ref": "secretAccessKeyPath1", "store": "external-secret-store", "version": "1"},
 			}),
 			resourceAttrName: "humanitec_resource_definition.s3_test_with_secrets",
@@ -193,13 +195,57 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionS3taticResourceWithSecretRefs(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyIdPath2", "secretAccessKeyPath2")
 			},
 			resourceAttrNameUpdateValue2: jsonString(map[string]interface{}{
-				"aws_access_key_id":     map[string]interface{}{"ref": "accessKeyIdPath2", "store": "external-secret-store", "version": "1"},
+				"nested": map[string]interface{}{
+					"aws_access_key_id": map[string]interface{}{"ref": "accessKeyIdPath2", "store": "external-secret-store", "version": "1"},
+				},
 				"aws_secret_access_key": map[string]interface{}{"ref": "secretAccessKeyPath2", "store": "external-secret-store", "version": "1"},
 			}),
 			importStateVerifyIgnore: []string{"force_delete"},
 		},
 		{
+			name: "S3 static - secret refs with null value", // "null" is injected when using a type like object({ .. value   = optional(string) }) in the schema
+			configCreate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecretRefsWithNull(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyIdPath1", "secretAccessKeyPath1")
+			},
+			resourceAttrNameIDValue:   fmt.Sprintf("s3-test-with-secrets-%d", timestamp),
+			resourceAttrNameUpdateKey: "driver_inputs.secret_refs",
+			resourceAttrNameUpdateValue1: jsonString(map[string]interface{}{
+				"aws_access_key_id":     map[string]interface{}{"ref": "accessKeyIdPath1", "store": "external-secret-store", "version": "1", "value": nil},
+				"aws_secret_access_key": map[string]interface{}{"ref": "secretAccessKeyPath1", "store": "external-secret-store", "version": "1", "value": nil},
+			}),
+			resourceAttrName: "humanitec_resource_definition.s3_test_with_secrets",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecretRefsWithNull(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyIdPath2", "secretAccessKeyPath2")
+			},
+			resourceAttrNameUpdateValue2: jsonString(map[string]interface{}{
+				"aws_access_key_id":     map[string]interface{}{"ref": "accessKeyIdPath2", "store": "external-secret-store", "version": "1", "value": nil},
+				"aws_secret_access_key": map[string]interface{}{"ref": "secretAccessKeyPath2", "store": "external-secret-store", "version": "1", "value": nil},
+			}),
+			importStateVerifyIgnore: []string{"force_delete", "driver_inputs.secret_refs"}, // refs are ignored as "value: null" is not returned from the API
+		},
+		{
 			name: "S3 static - secret ref set values",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecretRefValues(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyId1", "secretAccessKey1")
+			},
+			resourceAttrNameIDValue:   fmt.Sprintf("s3-test-with-secrets-%d", timestamp),
+			resourceAttrNameUpdateKey: "driver_inputs.secret_refs",
+			resourceAttrNameUpdateValue1: jsonString(map[string]interface{}{
+				"aws_access_key_id":     map[string]interface{}{"value": "accessKeyId1"},
+				"aws_secret_access_key": map[string]interface{}{"value": "secretAccessKey1"},
+			}),
+			resourceAttrName: "humanitec_resource_definition.s3_test_with_secrets",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3taticResourceWithSecretRefValues(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyId2", "secretAccessKey2")
+			},
+			resourceAttrNameUpdateValue2: jsonString(map[string]interface{}{
+				"aws_access_key_id":     map[string]interface{}{"value": "accessKeyId2"},
+				"aws_secret_access_key": map[string]interface{}{"value": "secretAccessKey2"},
+			}),
+			importStateVerifyIgnore: []string{"driver_inputs.secret_refs", "force_delete"},
+		},
+		{
+			name: "S3 static - secret ref nested",
 			configCreate: func() string {
 				return testAccResourceDefinitionS3taticResourceWithSecretRefValues(fmt.Sprintf("s3-test-with-secrets-%d", timestamp), "accessKeyId1", "secretAccessKey1")
 			},
@@ -493,15 +539,49 @@ resource "humanitec_resource_definition" "s3_test_with_secrets" {
 	  "region" = "us-east-1"
     })
     secret_refs = jsonencode({
+			"nested" : {
+				"aws_access_key_id"     =  {
+        	"ref"     = "%s"
+					"store"   = "external-secret-store"
+					"version" = "1"
+	  		}
+			}
+      "aws_secret_access_key" = {
+        "ref"     = "%s"
+		"store"   = "external-secret-store"
+		"version" = "1"
+	  }
+    })
+  }
+}
+`, id, awsAccessKeyIDPath, awsSecretAccessKeyPath)
+}
+
+func testAccResourceDefinitionS3taticResourceWithSecretRefsWithNull(id, awsAccessKeyIDPath, awsSecretAccessKeyPath string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test_with_secrets" {
+  id          = "%s"
+  name        = "s3-test-with-secrets"
+  type        = "s3"
+  driver_type = "humanitec/static"
+
+  driver_inputs = {
+	values_string = jsonencode({
+      "bucket" = "test-bucket"
+	  "region" = "us-east-1"
+    })
+    secret_refs = jsonencode({
       "aws_access_key_id"     =  {
         "ref"     = "%s"
 		"store"   = "external-secret-store"
 		"version" = "1"
+		"value"   = null
 	  }
       "aws_secret_access_key" = {
         "ref"     = "%s"
 		"store"   = "external-secret-store"
 		"version" = "1"
+		"value"   = null
 	  }
     })
   }
@@ -564,4 +644,194 @@ func getDefinitionSecretPath(defID string) string {
 
 func getDefinitionSecretRef(id string, version int) string {
 	return fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\",\"version\":\"%d\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\",\"version\":\"%d\"}}", getDefinitionSecretPath(id), version, getDefinitionSecretPath(id), version)
+}
+
+func TestMergeResourceDefinitionSecretRefResponse(t *testing.T) {
+	testCases := []struct {
+		name     string
+		existing map[string]interface{}
+		new      map[string]interface{}
+		expected map[string]interface{}
+	}{
+		{
+			name: "untouched simple references",
+			existing: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+				},
+			},
+			new: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+				},
+			},
+			expected: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+				},
+			},
+		},
+		{
+			name: "retains null values",
+			existing: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+					"value":   nil,
+				},
+			},
+			new: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+				},
+			},
+			expected: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+					"value":   nil,
+				},
+			},
+		},
+		{
+			name: "omits other attributes when only value is defined",
+			existing: map[string]interface{}{
+				"key": map[string]interface{}{
+					"value": "a",
+				},
+			},
+			new: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+				},
+			},
+			expected: map[string]interface{}{
+				"key": map[string]interface{}{
+					"value": "a",
+				},
+			},
+		},
+		{
+			name: "omits other attributes when only value is defined (nested)",
+			existing: map[string]interface{}{
+				"nested": map[string]interface{}{
+					"key": map[string]interface{}{
+						"value": "a",
+					},
+				},
+			},
+			new: map[string]interface{}{
+				"nested": map[string]interface{}{
+					"key": map[string]interface{}{
+						"ref":     "path1",
+						"store":   "store1",
+						"version": "1",
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"nested": map[string]interface{}{
+					"key": map[string]interface{}{
+						"value": "a",
+					},
+				},
+			},
+		},
+		{
+			name: "omits other attributes when only value is defined (nested list)",
+			existing: map[string]interface{}{
+				"nested": []interface{}{
+					map[string]interface{}{
+						"key": map[string]interface{}{
+							"value": "a",
+						},
+					},
+				},
+			},
+			new: map[string]interface{}{
+				"nested": []interface{}{
+					map[string]interface{}{
+						"key": map[string]interface{}{
+							"ref":     "path1",
+							"store":   "store1",
+							"version": "1",
+						},
+					},
+				},
+			},
+			expected: map[string]interface{}{
+				"nested": []interface{}{
+					map[string]interface{}{
+						"key": map[string]interface{}{
+							"value": "a",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "keeps null attributes when only value is defined",
+			existing: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     nil,
+					"store":   nil,
+					"version": nil,
+					"value":   "a",
+				},
+			},
+			new: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+				},
+			},
+			expected: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     nil,
+					"store":   nil,
+					"version": nil,
+					"value":   "a",
+				},
+			},
+		},
+		{
+			name:     "supports importing references",
+			existing: map[string]interface{}{},
+			new: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+				},
+			},
+			expected: map[string]interface{}{
+				"key": map[string]interface{}{
+					"ref":     "path1",
+					"store":   "store1",
+					"version": "1",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := mergeResourceDefinitionSecretRefResponse(tc.existing, tc.new)
+			assert.Empty(t, diags)
+			assert.Equal(t, tc.expected, tc.new)
+		})
+	}
 }

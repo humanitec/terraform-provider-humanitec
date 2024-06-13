@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
@@ -256,18 +255,117 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	}
 
 	if data.DriverInputs != nil {
-		if driverInputs.SecretRefs == nil {
-			data.DriverInputs.SecretRefs = types.StringNull()
-		} else {
-			if !strings.Contains(data.DriverInputs.SecretRefs.ValueString(), `{"value":"`) {
-				b, err := json.Marshal(driverInputs.SecretRefs)
-				if err != nil {
-					diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal secret_refs: %s", err.Error()))
-				}
-				data.DriverInputs.SecretRefs = types.StringValue(string(b))
-			}
+		diags.Append(parseResourceDefinitionSecretRefResponse(driverInputs.SecretRefs, data)...)
+	}
+	return diags
+}
+
+func parseResourceDefinitionSecretRefResponse(secretRefs *map[string]interface{}, data *DefinitionResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if secretRefs == nil {
+		data.DriverInputs.SecretRefs = types.StringNull()
+		return diags
+	}
+
+	existingStateSecretRefs := map[string]interface{}{}
+
+	// unmarshal existing secret_refs
+	existingRefs := data.DriverInputs.SecretRefs.ValueString()
+	if existingRefs != "" {
+		if err := json.Unmarshal([]byte(existingRefs), &existingStateSecretRefs); err != nil {
+			diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to unmarshal existing secret_refs: %s, \"%s\"", err.Error(), existingRefs))
+			return diags
 		}
 	}
+
+	apiSecretRefs := *secretRefs
+	diags.Append(mergeResourceDefinitionSecretRefResponse(existingStateSecretRefs, apiSecretRefs)...)
+	if diags.HasError() {
+		return diags
+	}
+
+	b, err := json.Marshal(apiSecretRefs)
+	if err != nil {
+		diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal secret_refs: %s", err.Error()))
+	}
+	data.DriverInputs.SecretRefs = types.StringValue(string(b))
+
+	return diags
+}
+
+type ResourceDefinitionSecretReference struct {
+	Store   string `json:"store"`
+	Ref     string `json:"ref"`
+	Version string `json:"version"`
+	Value   string `json:"value"`
+}
+
+func isResourceDefinitionSecretReference(data any) bool {
+	secretRefMapJson, err := json.Marshal(data)
+	if err != nil {
+		return false
+	}
+
+	if err := strictUnmarshal(secretRefMapJson, &ResourceDefinitionSecretReference{}); err != nil {
+		return false
+	}
+	return true
+}
+
+// mergeResourceDefinitionSecretRefResponse merges the existing state secret_refs with the new secret_refs.
+func mergeResourceDefinitionSecretRefResponse(existingStateSecretRefs, apiSecretRefs map[string]interface{}) diag.Diagnostics {
+	return updateResourceDefinitionSecretRefResponse([]string{}, apiSecretRefs, existingStateSecretRefs)
+}
+
+func updateResourceDefinitionSecretRefResponse(path []string, apiSecretRefI any, existingSecretRefI any) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	switch typed := apiSecretRefI.(type) {
+	case map[string]interface{}:
+		if isResourceDefinitionSecretReference(typed) {
+			// value is never returned from the API, so take the value from the existing state
+			if existingRef, ok := existingSecretRefI.(map[string]interface{}); ok {
+				if val, ok := existingRef["value"]; ok {
+					if val == nil {
+						typed["value"] = val
+					} else {
+						overrideMap(typed, existingRef)
+					}
+				}
+			}
+		} else {
+			for k, v := range typed {
+				newPath := append(path, k)
+				var newExisting interface{}
+				if existingRef, ok := existingSecretRefI.(map[string]interface{}); ok {
+					newExisting = existingRef[k]
+				}
+				updateResourceDefinitionSecretRefResponse(newPath, v, newExisting)
+			}
+		}
+	case []map[string]interface{}:
+		for idx, v := range typed {
+			newPath := append(path, fmt.Sprintf("[%d]", idx))
+			var newExisting interface{}
+			if existingRef, ok := existingSecretRefI.([]map[string]interface{}); ok {
+				newExisting = existingRef[idx]
+			}
+			updateResourceDefinitionSecretRefResponse(newPath, v, newExisting)
+		}
+	case []interface{}:
+		for idx, v := range typed {
+			newPath := append(path, fmt.Sprintf("[%d]", idx))
+			var newExisting interface{}
+			if existingRef, ok := existingSecretRefI.([]interface{}); ok {
+				newExisting = existingRef[idx]
+			}
+			updateResourceDefinitionSecretRefResponse(newPath, v, newExisting)
+		}
+	default:
+		diags.AddError(HUM_API_ERR, fmt.Sprintf("Unknown secret_ref type in %s: %T", path, typed))
+	}
+
 	return diags
 }
 

@@ -73,3 +73,56 @@ func TestReadConfigNonExistentFile(t *testing.T) {
 	assert.Len(diags, 1)
 	assert.Equal("Unable to read config file", diags[0].Summary())
 }
+
+func TestStrictUnmarshal(t *testing.T) {
+	testCases := []struct {
+		name      string
+		input     string
+		expectErr bool
+	}{
+		{
+			name:      "valid",
+			input:     `{"field": "value"}`,
+			expectErr: false,
+		},
+		{
+			name:      "additional fields",
+			input:     `{"field": "value", "a": "b"}`,
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := struct {
+				Field string `json:"field"`
+			}{}
+
+			err := strictUnmarshal([]byte(tc.input), &f)
+			if tc.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestOverrideMap(t *testing.T) {
+	assert := assert.New(t)
+
+	original := map[string]interface{}{
+		"key":         "value",
+		"another key": "another value",
+	}
+	overrides := map[string]interface{}{
+		"key":     "new value 1",
+		"new key": "new value 2",
+	}
+
+	overrideMap(original, overrides)
+	assert.Equal(map[string]interface{}{
+		"key":     "new value 1",
+		"new key": "new value 2",
+	}, original)
+}
