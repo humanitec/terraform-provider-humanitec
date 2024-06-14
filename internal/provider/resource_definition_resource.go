@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
@@ -129,11 +128,13 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 					"secrets_string": schema.StringAttribute{
 						MarkdownDescription: "JSON encoded secret data set. Passed around as-is. Can't be used together with secret_refs.",
 						Optional:            true,
+						Sensitive:           true,
 					},
 					"secret_refs": schema.StringAttribute{
 						MarkdownDescription: "JSON encoded secrets section of the data set. They can hold sensitive information that will be stored in the primary organization secret store and replaced with the secret store paths when sent outside, or secret references stored in a defined secret store. Can't be used together with secrets.",
 						Optional:            true,
 						Computed:            true,
+						Sensitive:           true,
 						Validators: []validator.String{
 							stringvalidator.ConflictsWith(path.Expressions{
 								path.MatchRelative().AtParent().AtName("secrets_string"),
@@ -226,7 +227,7 @@ func defaultFalseBoolValuePointer(b *bool) types.Bool {
 	return types.BoolValue(*b)
 }
 
-func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[string]interface{}, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
+func parseResourceDefinitionResponse(res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	data.ID = types.StringValue(res.Id)
@@ -254,18 +255,117 @@ func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[
 	}
 
 	if data.DriverInputs != nil {
-		if driverInputs.SecretRefs == nil {
-			data.DriverInputs.SecretRefs = types.StringNull()
-		} else {
-			if !strings.Contains(data.DriverInputs.SecretRefs.ValueString(), `{"value":"`) {
-				b, err := json.Marshal(driverInputs.SecretRefs)
-				if err != nil {
-					diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal secret_refs: %s", err.Error()))
-				}
-				data.DriverInputs.SecretRefs = types.StringValue(string(b))
-			}
+		diags.Append(parseResourceDefinitionSecretRefResponse(driverInputs.SecretRefs, data)...)
+	}
+	return diags
+}
+
+func parseResourceDefinitionSecretRefResponse(secretRefs *map[string]interface{}, data *DefinitionResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if secretRefs == nil {
+		data.DriverInputs.SecretRefs = types.StringNull()
+		return diags
+	}
+
+	existingStateSecretRefs := map[string]interface{}{}
+
+	// unmarshal existing secret_refs
+	existingRefs := data.DriverInputs.SecretRefs.ValueString()
+	if existingRefs != "" {
+		if err := json.Unmarshal([]byte(existingRefs), &existingStateSecretRefs); err != nil {
+			diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to unmarshal existing secret_refs: %s, \"%s\"", err.Error(), existingRefs))
+			return diags
 		}
 	}
+
+	apiSecretRefs := *secretRefs
+	diags.Append(mergeResourceDefinitionSecretRefResponse(existingStateSecretRefs, apiSecretRefs)...)
+	if diags.HasError() {
+		return diags
+	}
+
+	b, err := json.Marshal(apiSecretRefs)
+	if err != nil {
+		diags.AddError(HUM_API_ERR, fmt.Sprintf("Failed to marshal secret_refs: %s", err.Error()))
+	}
+	data.DriverInputs.SecretRefs = types.StringValue(string(b))
+
+	return diags
+}
+
+type ResourceDefinitionSecretReference struct {
+	Store   string `json:"store"`
+	Ref     string `json:"ref"`
+	Version string `json:"version"`
+	Value   string `json:"value"`
+}
+
+func isResourceDefinitionSecretReference(data any) bool {
+	secretRefMapJson, err := json.Marshal(data)
+	if err != nil {
+		return false
+	}
+
+	if err := strictUnmarshal(secretRefMapJson, &ResourceDefinitionSecretReference{}); err != nil {
+		return false
+	}
+	return true
+}
+
+// mergeResourceDefinitionSecretRefResponse merges the existing state secret_refs with the new secret_refs.
+func mergeResourceDefinitionSecretRefResponse(existingStateSecretRefs, apiSecretRefs map[string]interface{}) diag.Diagnostics {
+	return updateResourceDefinitionSecretRefResponse([]string{}, apiSecretRefs, existingStateSecretRefs)
+}
+
+func updateResourceDefinitionSecretRefResponse(path []string, apiSecretRefI any, existingSecretRefI any) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	switch typed := apiSecretRefI.(type) {
+	case map[string]interface{}:
+		if isResourceDefinitionSecretReference(typed) {
+			// value is never returned from the API, so take the value from the existing state
+			if existingRef, ok := existingSecretRefI.(map[string]interface{}); ok {
+				if val, ok := existingRef["value"]; ok {
+					if val == nil {
+						typed["value"] = val
+					} else {
+						overrideMap(typed, existingRef)
+					}
+				}
+			}
+		} else {
+			for k, v := range typed {
+				newPath := append(path, k)
+				var newExisting interface{}
+				if existingRef, ok := existingSecretRefI.(map[string]interface{}); ok {
+					newExisting = existingRef[k]
+				}
+				updateResourceDefinitionSecretRefResponse(newPath, v, newExisting)
+			}
+		}
+	case []map[string]interface{}:
+		for idx, v := range typed {
+			newPath := append(path, fmt.Sprintf("[%d]", idx))
+			var newExisting interface{}
+			if existingRef, ok := existingSecretRefI.([]map[string]interface{}); ok {
+				newExisting = existingRef[idx]
+			}
+			updateResourceDefinitionSecretRefResponse(newPath, v, newExisting)
+		}
+	case []interface{}:
+		for idx, v := range typed {
+			newPath := append(path, fmt.Sprintf("[%d]", idx))
+			var newExisting interface{}
+			if existingRef, ok := existingSecretRefI.([]interface{}); ok {
+				newExisting = existingRef[idx]
+			}
+			updateResourceDefinitionSecretRefResponse(newPath, v, newExisting)
+		}
+	default:
+		diags.AddError(HUM_API_ERR, fmt.Sprintf("Unknown secret_ref type in %s: %T", path, typed))
+	}
+
 	return diags
 }
 
@@ -286,7 +386,7 @@ func provisionFromModel(data *map[string]DefinitionResourceProvisionModel) *map[
 	return &provision
 }
 
-func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRefsRequest, diag.Diagnostics) {
+func driverInputsFromModel(data *DefinitionResourceModel) (*client.ValuesSecretsRefsRequest, diag.Diagnostics) {
 	if data.DriverInputs == nil {
 		return nil, nil
 	}
@@ -343,14 +443,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	provision := provisionFromModel(data.Provision)
-	driverType := data.DriverType.ValueString()
-	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
-	resp.Diagnostics.Append(diag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	driverInputs, diag := driverInputsFromModel(ctx, driverInputSchema, data)
+	driverInputs, diag := driverInputsFromModel(data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -375,7 +468,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -411,13 +504,7 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, httpResp.JSON200.DriverType, httpResp.JSON200.Type)
-	resp.Diagnostics.Append(diag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -437,15 +524,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	name := data.Name.ValueString()
-	driverType := data.DriverType.ValueString()
-	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
-	resp.Diagnostics.Append(diag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	driverInputs, diag := driverInputsFromModel(ctx, driverInputSchema, data)
+	driverInputs, diag := driverInputsFromModel(data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -459,7 +538,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		DriverType:    data.DriverType.ValueStringPointer(),
 		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
-		Name:          name,
+		Name:          data.Name.ValueString(),
 		Provision:     provision,
 	})
 	if err != nil {
@@ -472,7 +551,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

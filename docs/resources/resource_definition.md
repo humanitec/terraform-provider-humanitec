@@ -132,8 +132,8 @@ resource "humanitec_resource_definition" "azure-blob" {
 
 Optional:
 
-- `secret_refs` (String) JSON encoded secrets section of the data set. They can hold sensitive information that will be stored in the primary organization secret store and replaced with the secret store paths when sent outside, or secret references stored in a defined secret store. Can't be used together with secrets.
-- `secrets_string` (String) JSON encoded secret data set. Passed around as-is. Can't be used together with secret_refs.
+- `secret_refs` (String, Sensitive) JSON encoded secrets section of the data set. They can hold sensitive information that will be stored in the primary organization secret store and replaced with the secret store paths when sent outside, or secret references stored in a defined secret store. Can't be used together with secrets.
+- `secrets_string` (String, Sensitive) JSON encoded secret data set. Passed around as-is. Can't be used together with secret_refs.
 - `values_string` (String) JSON encoded input data set. Passed around as-is.
 
 

@@ -236,7 +236,6 @@ func (r *ResourcePipelineCriteria) Read(ctx context.Context, req resource.ReadRe
 func (r *ResourcePipelineCriteria) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// you can't update criteria in place, all updates should be done with a replacement
 	resp.Diagnostics.AddError(HUM_CLIENT_ERR, "Unable to update pipeline criteria")
-	return
 }
 
 func (r *ResourcePipelineCriteria) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -275,5 +274,4 @@ func (r *ResourcePipelineCriteria) ImportState(ctx context.Context, req resource
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("app_id"), appId)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("pipeline_id"), pipelineId)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), criteriaId)...)
-	return
 }
