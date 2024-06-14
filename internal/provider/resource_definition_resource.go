@@ -227,7 +227,7 @@ func defaultFalseBoolValuePointer(b *bool) types.Bool {
 	return types.BoolValue(*b)
 }
 
-func parseResourceDefinitionResponse(ctx context.Context, driverInputSchema map[string]interface{}, res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
+func parseResourceDefinitionResponse(res *client.ResourceDefinitionResponse, data *DefinitionResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	data.ID = types.StringValue(res.Id)
@@ -386,7 +386,7 @@ func provisionFromModel(data *map[string]DefinitionResourceProvisionModel) *map[
 	return &provision
 }
 
-func driverInputsFromModel(ctx context.Context, inputSchema map[string]interface{}, data *DefinitionResourceModel) (*client.ValuesSecretsRefsRequest, diag.Diagnostics) {
+func driverInputsFromModel(data *DefinitionResourceModel) (*client.ValuesSecretsRefsRequest, diag.Diagnostics) {
 	if data.DriverInputs == nil {
 		return nil, nil
 	}
@@ -443,14 +443,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	provision := provisionFromModel(data.Provision)
-	driverType := data.DriverType.ValueString()
-	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
-	resp.Diagnostics.Append(diag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	driverInputs, diag := driverInputsFromModel(ctx, driverInputSchema, data)
+	driverInputs, diag := driverInputsFromModel(data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -475,7 +468,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -511,13 +504,7 @@ func (r *ResourceDefinitionResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, httpResp.JSON200.DriverType, httpResp.JSON200.Type)
-	resp.Diagnostics.Append(diag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -537,15 +524,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	name := data.Name.ValueString()
-	driverType := data.DriverType.ValueString()
-	driverInputSchema, diag := r.data.DriverInputSchemaByDriverTypeOrType(ctx, driverType, data.Type.ValueString())
-	resp.Diagnostics.Append(diag...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	driverInputs, diag := driverInputsFromModel(ctx, driverInputSchema, data)
+	driverInputs, diag := driverInputsFromModel(data)
 	resp.Diagnostics.Append(diag...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -559,7 +538,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		DriverType:    data.DriverType.ValueStringPointer(),
 		DriverAccount: data.DriverAccount.ValueStringPointer(),
 		DriverInputs:  driverInputs,
-		Name:          name,
+		Name:          data.Name.ValueString(),
 		Provision:     provision,
 	})
 	if err != nil {
@@ -572,7 +551,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	resp.Diagnostics.Append(parseResourceDefinitionResponse(ctx, driverInputSchema, httpResp.JSON200, data)...)
+	resp.Diagnostics.Append(parseResourceDefinitionResponse(httpResp.JSON200, data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

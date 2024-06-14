@@ -25,7 +25,6 @@ var _ resource.ResourceWithImportState = &ResourceEnvironmentTypeUser{}
 
 var (
 	defaultEnvironmentTypeUserCreateTimeout = 30 * time.Second
-	defaultEnvironmentTypeUserReadTimeout   = 30 * time.Second
 )
 
 func NewResourceEnvironmentTypeUser() resource.Resource {

@@ -25,7 +25,6 @@ var _ resource.ResourceWithImportState = &ResourceApplicationUser{}
 
 var (
 	defaultApplicationUserCreateTimeout = 30 * time.Second
-	defaultApplicationUserReadTimeout   = 30 * time.Second
 )
 
 func NewResourceApplicationUser() resource.Resource {
