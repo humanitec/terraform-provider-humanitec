@@ -52,7 +52,7 @@ func TestAccResourceDefinition(t *testing.T) {
 			resourceAttrNameUpdateValue1: staticString("humanitec/s3"),
 			resourceAttrName:             "humanitec_resource_definition.s3_test",
 			configUpdate: func() string {
-				return testAccResourceDefinitionS3ResourceWithDifferentDriver(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1", "humanitec/terraform")
+				return testAccResourceDefinitionS3ResourceWithDifferentDriver(fmt.Sprintf("s3-test-%d", timestamp), "humanitec/terraform")
 			},
 			resourceAttrNameUpdateValue2: staticString("humanitec/terraform"),
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -390,7 +390,7 @@ resource "humanitec_resource_definition" "s3_test" {
 `, id, region)
 }
 
-func testAccResourceDefinitionS3ResourceWithDifferentDriver(id, region, driver_type string) string {
+func testAccResourceDefinitionS3ResourceWithDifferentDriver(id, driver_type string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "s3_test" {
   id          = "%s"
@@ -398,13 +398,9 @@ resource "humanitec_resource_definition" "s3_test" {
   type        = "s3"
   driver_type = "%s"
 
-  driver_inputs = {
-    values_string = jsonencode({
-      "region" = "%s"
-    })
-  }
+  driver_inputs = {}
 }
-`, id, driver_type, region)
+`, id, driver_type)
 }
 
 func testAccResourceDefinitionPostgresResource(id, name string) string {
