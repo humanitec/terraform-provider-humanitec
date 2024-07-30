@@ -58,6 +58,10 @@ func TestAccResourceApplicationUserDeletedManually(t *testing.T) {
 
 	orgID := os.Getenv("HUMANITEC_ORG")
 	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
 
 	var client *humanitec.Client
 	var err error
@@ -66,17 +70,17 @@ func TestAccResourceApplicationUserDeletedManually(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 
-			client, err = NewHumanitecClient(humanitec.DefaultAPIHost, token, "test", nil)
+			client, err = NewHumanitecClient(apiHost, token, "test", nil)
 			assert.NoError(err)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccResourceApplicationUser(id, testUserID, "owner"),
+				Config: testAccResourceApplicationUser(id, testUserID, "developer"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_application_user.another_user", "id", fmt.Sprintf("%s/%s", id, testUserID)),
-					resource.TestCheckResourceAttr("humanitec_application_user.another_user", "role", "owner"),
+					resource.TestCheckResourceAttr("humanitec_application_user.another_user", "role", "developer"),
 					func(_ *terraform.State) error {
 						// Manually delete the application via the API
 						resp, err := client.DeleteApplicationWithResponse(ctx, orgID, id)

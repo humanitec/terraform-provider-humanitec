@@ -217,7 +217,8 @@ func (a *Agent) Read(ctx context.Context, req resource.ReadRequest, resp *resour
 			}
 		}
 		if agent == nil {
-			resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Can't find agent %s in organization agent list", id))
+			resp.Diagnostics.AddWarning("Agent not found", fmt.Sprintf("The agent (%s) was deleted outside Terraform", data.ID.ValueString()))
+			resp.State.RemoveResource(ctx)
 			return
 		}
 	default:

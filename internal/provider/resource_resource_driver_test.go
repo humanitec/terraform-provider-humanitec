@@ -1,11 +1,16 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/humanitec/humanitec-go-autogen"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccResourceResourceDriver(t *testing.T) {
@@ -74,6 +79,54 @@ func TestAccResourceResourceDriver(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestAccResourceDriver_DeletedManually(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+	id := fmt.Sprintf("driver-%d", time.Now().UnixNano())
+
+	orgID := os.Getenv("HUMANITEC_ORG")
+	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
+
+	var client *humanitec.Client
+	var err error
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+
+			client, err = NewHumanitecClient(apiHost, token, "test", nil)
+			assert.NoError(err)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceResourceDriver(id, "http://driver.driver:8080/driver"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_resource_driver.s3", "target", "http://driver.driver:8080/driver"),
+					func(_ *terraform.State) error {
+						// Manually delete the resource driver via the API
+						resp, err := client.DeleteResourceDriverWithResponse(ctx, orgID, id)
+						if err != nil {
+							return err
+						}
+
+						if resp.StatusCode() != 204 {
+							return fmt.Errorf("expected status code 204, got %d, body: %s", resp.StatusCode(), string(resp.Body))
+						}
+
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
 }
 
 func testAccResourceResourceDriver(id, target string) string {

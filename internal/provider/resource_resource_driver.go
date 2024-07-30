@@ -212,6 +212,12 @@ func (r *ResourceResourceDriver) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
+	if httpResp.StatusCode() == 404 {
+		resp.Diagnostics.AddWarning("Resource driver not found", fmt.Sprintf("The resource driver (%s) was deleted outside Terraform", data.ID.ValueString()))
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	if httpResp.StatusCode() != 200 {
 		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read resource driver, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 		return
