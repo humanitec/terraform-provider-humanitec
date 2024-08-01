@@ -1,12 +1,16 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/humanitec/humanitec-go-autogen"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAccResourceSecretStore_AzureKV(t *testing.T) {
@@ -205,6 +209,54 @@ func TestAccResourceSecretStore_Vault_RemoveAuth(t *testing.T) {
 				),
 			},
 			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceSecretStore_DeletedManually(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+	id := fmt.Sprintf("secret-store-%d", time.Now().UnixNano())
+
+	orgID := os.Getenv("HUMANITEC_ORG")
+	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
+
+	var client *humanitec.Client
+	var err error
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+
+			client, err = NewHumanitecClient(apiHost, token, "test", nil)
+			assert.NoError(err)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccSecretStoreVaultNoAuth(id, "dumburl", false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.url", "dumburl"),
+					func(_ *terraform.State) error {
+						// Manually delete the secret store via the API
+						resp, err := client.DeleteOrgsOrgIdSecretstoresStoreIdWithResponse(ctx, orgID, id)
+						if err != nil {
+							return err
+						}
+
+						if resp.StatusCode() != 204 {
+							return fmt.Errorf("expected status code 204, got %d, body: %s", resp.StatusCode(), string(resp.Body))
+						}
+
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
+			},
 		},
 	})
 }

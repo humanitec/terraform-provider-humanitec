@@ -46,6 +46,10 @@ func TestAccResourceApplicationDeletedOutManually(t *testing.T) {
 
 	orgID := os.Getenv("HUMANITEC_ORG")
 	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
 
 	var client *humanitec.Client
 	var err error
@@ -54,7 +58,7 @@ func TestAccResourceApplicationDeletedOutManually(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 
-			client, err = NewHumanitecClient(humanitec.DefaultAPIHost, token, "test", nil)
+			client, err = NewHumanitecClient(apiHost, token, "test", nil)
 			assert.NoError(err)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

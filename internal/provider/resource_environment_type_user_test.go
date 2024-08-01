@@ -59,6 +59,10 @@ func TestAccResourceEnvironmentTypeUserDeletedManually(t *testing.T) {
 
 	orgID := os.Getenv("HUMANITEC_ORG")
 	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
 
 	var client *humanitec.Client
 	var err error
@@ -67,7 +71,7 @@ func TestAccResourceEnvironmentTypeUserDeletedManually(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 
-			client, err = NewHumanitecClient(humanitec.DefaultAPIHost, token, "test", nil)
+			client, err = NewHumanitecClient(apiHost, token, "test", nil)
 			assert.NoError(err)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -79,7 +83,7 @@ func TestAccResourceEnvironmentTypeUserDeletedManually(t *testing.T) {
 					resource.TestCheckResourceAttr("humanitec_environment_type_user.another_user", "id", fmt.Sprintf("%s/%s", id, testUserID)),
 					resource.TestCheckResourceAttr("humanitec_environment_type_user.another_user", "role", "deployer"),
 					func(_ *terraform.State) error {
-						// Manually delete the application via the API
+						// Manually delete the environment type via the API
 						resp, err := client.DeleteEnvironmentTypeWithResponse(ctx, orgID, id)
 						if err != nil {
 							return err
