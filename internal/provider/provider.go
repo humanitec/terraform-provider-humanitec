@@ -3,14 +3,18 @@ package provider
 import (
 	"context"
 	"crypto/tls"
+	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/justinrixx/retryhttp"
+
 	"github.com/humanitec/humanitec-go-autogen"
 )
 
@@ -170,16 +174,27 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		// Not returning early allows the logic to collect all errors.
 	}
 
-	var doer *http.Client
-	if data.DisableSSLCertificateVerification.ValueBool() {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		doer = &http.Client{Transport: tr}
-	} else {
-		doer = &http.Client{}
+	baseTransport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
 
+	if data.DisableSSLCertificateVerification.ValueBool() {
+		baseTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	doer := &http.Client{
+		Timeout:   time.Minute,
+		Transport: retryhttp.New(retryhttp.WithTransport(baseTransport)),
+	}
 	client, err := NewHumanitecClient(apiPrefix, token, p.version, doer)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create Humanitec client", err.Error())
