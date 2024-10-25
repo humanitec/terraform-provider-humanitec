@@ -15,6 +15,7 @@ import (
 
 func TestAccResourceSecretStore_AzureKV(t *testing.T) {
 	id := fmt.Sprintf("azurekv-test-%d", time.Now().UnixNano())
+	newId := fmt.Sprintf("azurekv-test-new-%d", time.Now().UnixNano())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -44,6 +45,17 @@ func TestAccResourceSecretStore_AzureKV(t *testing.T) {
 			{
 				Config: testAccSecretStoreAzureKV(id, "tenant-id", "azurekv-url-changed", "client-id-changed", "client-secret"),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "primary", "false"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.tenant_id", "tenant-id"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.url", "azurekv-url-changed"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.auth.client_id", "client-id-changed"),
+				),
+			},
+			// Replace and Read testing
+			{
+				Config: testAccSecretStoreAzureKV(newId, "tenant-id", "azurekv-url-changed", "client-id-changed", "client-secret"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "id", newId),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "primary", "false"),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.tenant_id", "tenant-id"),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_azurekv_test", "azurekv.url", "azurekv-url-changed"),
