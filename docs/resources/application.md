@@ -41,6 +41,7 @@ resource "humanitec_application" "example" {
 ### Optional
 
 - `env` (Attributes) Initial environment to create. Will be `development` by default. **Warning**: Change `env` value after creation will force destroy this resource and his dependencies (include environments, values, webhook, workloads, etc.). (see [below for nested schema](#nestedatt--env))
+- `skip_environment_creation` (Boolean) If true, no environment will be created with the application.
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 
 <a id="nestedatt--env"></a>
