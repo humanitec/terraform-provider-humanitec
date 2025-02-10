@@ -140,3 +140,82 @@ resource "humanitec_application" "app_test" {
 }
 `, id, name)
 }
+
+func TestAccResourceApplicationWithoutInitialEnv(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+	id := fmt.Sprintf("test-%d", time.Now().UnixNano())
+
+	orgID := os.Getenv("HUMANITEC_ORG")
+	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
+
+	var client *humanitec.Client
+	var err error
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+
+			client, err = NewHumanitecClient(apiHost, token, "test", nil)
+			assert.NoError(err)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceApplicationWithSkipFlag(id, "test-app-1", true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_application.app_test", "id", id),
+					resource.TestCheckResourceAttr("humanitec_application.app_test", "name", "test-app-1"),
+					func(_ *terraform.State) error {
+						// Check that the environment was not created
+						resp, err := client.ListEnvironmentsWithResponse(ctx, orgID, id)
+						assert.NoError(err)
+
+						if resp.StatusCode() != 200 {
+							return fmt.Errorf("expected status code 200, got %d, body: %s", resp.StatusCode(), string(resp.Body))
+						}
+
+						assert.Equal(0, len(*resp.JSON200))
+						return nil
+					},
+				),
+			},
+			// Update flag testing
+			{
+				Config: testAccResourceApplicationWithSkipFlag(id, "test-app-1", false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_application.app_test", "id", id),
+					resource.TestCheckResourceAttr("humanitec_application.app_test", "name", "test-app-1"),
+					func(_ *terraform.State) error {
+						// Check that the environment was not created
+						resp, err := client.ListEnvironmentsWithResponse(ctx, orgID, id)
+						assert.NoError(err)
+
+						if resp.StatusCode() != 200 {
+							return fmt.Errorf("expected status code 200, got %d, body: %s", resp.StatusCode(), string(resp.Body))
+						}
+
+						assert.Equal(0, len(*resp.JSON200))
+						return nil
+					},
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccResourceApplicationWithSkipFlag(id, name string, skipFlag bool) string {
+	return fmt.Sprintf(`
+resource "humanitec_application" "app_test" {
+  id          = "%s"
+  name        = "%s"
+  skip_environment_creation = %t
+}
+`, id, name, skipFlag)
+}

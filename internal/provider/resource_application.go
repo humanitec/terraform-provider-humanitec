@@ -49,6 +49,7 @@ type ApplicationModel struct {
 	Name types.String `tfsdk:"name"`
 
 	Env *ApplicationEnvironmentModel `tfsdk:"env"`
+	SkipEnvCreation types.Bool `tfsdk:"skip_environment_creation"`
 
 	Timeouts timeouts.Value `tfsdk:"timeouts"`
 }
@@ -97,6 +98,10 @@ func (r *ResourceApplication) Schema(ctx context.Context, req resource.SchemaReq
 					},
 				},
 			},
+			"skip_environment_creation": schema.BoolAttribute{
+				Optional: true,
+				MarkdownDescription: "If true, no environment will be created with the application.",
+			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Read:   true,
 				Delete: true,
@@ -144,9 +149,15 @@ func (r *ResourceApplication) Create(ctx context.Context, req resource.CreateReq
 	id := data.ID.ValueString()
 	name := data.Name.ValueString()
 
+	skipEnvCreation := data.SkipEnvCreation.ValueBool()
+
 	var env *client.EnvironmentBaseRequest
 
 	if data.Env != nil {
+		if skipEnvCreation {
+			resp.Diagnostics.AddError(HUM_INPUT_ERR, "skip_environment_creation can't be used with env")
+			return
+		}
 		env = &client.EnvironmentBaseRequest{
 			Id:   data.Env.ID.ValueString(),
 			Name: data.Env.Name.ValueString(),
@@ -158,6 +169,7 @@ func (r *ResourceApplication) Create(ctx context.Context, req resource.CreateReq
 		Id:   id,
 		Name: name,
 		Env:  env,
+		SkipEnvironmentCreation: &skipEnvCreation,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create app, got error: %s", err))
@@ -229,7 +241,24 @@ func (r *ResourceApplication) Read(ctx context.Context, req resource.ReadRequest
 }
 
 func (r *ResourceApplication) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError("UNSUPPORTED_OPERATION", "Updating an application is currently not supported")
+	var data, state *ApplicationModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if data.ID != state.ID || data.Name != state.Name {
+		resp.Diagnostics.AddError("UNSUPPORTED_OPERATION", "Updating an application is currently not supported")
+		return
+	}
+
+	resp.Diagnostics.AddWarning("No changes", "No changes detected, skipping update")
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
