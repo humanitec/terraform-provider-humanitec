@@ -4,11 +4,20 @@ page_title: "humanitec_application Resource - terraform-provider-humanitec"
 subcategory: ""
 description: |-
   An Application is a collection of Workloads that work together. When deployed, all Workloads in an Application are deployed to the same namespace.
+  
+  NOTE:  Version 1.7.0 removed the option to create an initial environment via the application resource. Environment creation is now fully separate and must be triggered using the humanitec_environment https://registry.terraform.io/providers/humanitec/humanitec/latest/docs/resources/environment resource.
+  To replicate the previous application resource behavior, use the example below.
 ---
 
 # humanitec_application (Resource)
 
 An Application is a collection of Workloads that work together. When deployed, all Workloads in an Application are deployed to the same namespace.
+
+---
+**_NOTE:_**  Version 1.7.0 removed the option to create an initial environment via the application resource. Environment creation is now fully separate and must be triggered using the [humanitec_environment](https://registry.terraform.io/providers/humanitec/humanitec/latest/docs/resources/environment) resource.
+To replicate the previous application resource behavior, use the example below.
+
+---
 
 ## Example Usage
 
@@ -18,15 +27,11 @@ resource "humanitec_application" "example" {
   name = "An example app"
 }
 
-resource "humanitec_application" "example" {
-  id   = "example"
-  name = "An example app with default development environment overriden"
-
-  env = {
-    id   = "dev"
-    name = "Dev"
-    type = "development"
-  }
+resource "humanitec_environment" "example" {
+  app_id = humanitec_application.example.id
+  id     = "development"
+  name   = "Development"
+  type   = "development"
 }
 ```
 
@@ -40,18 +45,7 @@ resource "humanitec_application" "example" {
 
 ### Optional
 
-- `env` (Attributes) Initial environment to create. Will be `development` by default. **Warning**: Change `env` value after creation will force destroy this resource and his dependencies (include environments, values, webhook, workloads, etc.). (see [below for nested schema](#nestedatt--env))
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
-
-<a id="nestedatt--env"></a>
-### Nested Schema for `env`
-
-Required:
-
-- `id` (String) The ID the Environment is referenced as.
-- `name` (String) The Human-friendly name for the Environment.
-- `type` (String) The Environment Type. This is used for organizing and managing Environments.
-
 
 <a id="nestedatt--timeouts"></a>
 ### Nested Schema for `timeouts`

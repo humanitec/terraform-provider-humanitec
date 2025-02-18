@@ -3,13 +3,9 @@ resource "humanitec_application" "example" {
   name = "An example app"
 }
 
-resource "humanitec_application" "example" {
-  id   = "example"
-  name = "An example app with default development environment overriden"
-
-  env = {
-    id   = "dev"
-    name = "Dev"
-    type = "development"
-  }
+resource "humanitec_environment" "example" {
+  app_id = humanitec_application.example.id
+  id     = "development"
+  name   = "Development"
+  type   = "development"
 }
