@@ -132,7 +132,7 @@ func (r *ResourceAccountResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	httpResp, err := r.client.CreateResourceAccountWithResponse(ctx, r.orgId, client.CreateResourceAccountRequestRequest{
+	httpResp, err := r.client.CreateResourceAccountWithResponse(ctx, r.orgId, &client.CreateResourceAccountParams{}, client.CreateResourceAccountRequestRequest{
 		Id:          id,
 		Name:        name,
 		Type:        accountType,
@@ -206,7 +206,7 @@ func (r *ResourceAccountResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	httpResp, err := r.client.PatchResourceAccountWithResponse(ctx, r.orgId, data.ID.ValueString(), client.PatchResourceAccountJSONRequestBody{
+	httpResp, err := r.client.PatchResourceAccountWithResponse(ctx, r.orgId, data.ID.ValueString(), &client.PatchResourceAccountParams{}, client.PatchResourceAccountJSONRequestBody{
 		Name:        &name,
 		Credentials: &credentials,
 	})

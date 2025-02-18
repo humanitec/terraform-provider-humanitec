@@ -147,12 +147,13 @@ func testAccResourceRule(appID, artefact string) string {
 	resource "humanitec_application" "rule_test" {
 		id = "%s"
 		name = "rule-test"
-
-		env = {
-			id   = "dev"
-			name = "dev"
-			type = "development"
-		}
+	}
+	
+	resource "humanitec_environment" "dev" {
+		app_id = humanitec_application.rule_test.id
+		id = "dev"
+		name = "dev"
+		type = "development"
 	}
 
 	resource "humanitec_rule" "rule1" {
@@ -171,12 +172,13 @@ func testAccResourceRule_Full(appID, artefact string) string {
 	resource "humanitec_application" "rule_test" {
 		id = "%s"
 		name = "rule-test"
+	}
 
-		env = {
-			id   = "dev"
-			name = "dev"
-			type = "development"
-		}
+	resource "humanitec_environment" "dev" {
+		app_id = humanitec_application.rule_test.id
+		id = "dev"
+		name = "dev"
+		type = "development"
 	}
 
 	resource "humanitec_rule" "rule1" {

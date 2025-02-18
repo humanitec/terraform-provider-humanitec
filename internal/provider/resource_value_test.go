@@ -304,12 +304,13 @@ func testAccResourceVALUETestAccResourceValueWithEnv(appID, envID, key, descript
 resource "humanitec_application" "val_test" {
 	id   = "%s"
 	name = "val-test"
+}
 
-	env = {
-		id   = "%s"
-		name = "dev"
-		type = "development"
-	}
+resource "humanitec_environment" "dev" {
+	app_id = humanitec_application.val_test.id
+	id = "%s"
+	name = "dev"
+	type = "development"
 }
 
 resource "humanitec_value" "app_val1" {
