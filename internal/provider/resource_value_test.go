@@ -281,6 +281,61 @@ func TestAccResourceValueWithEnv(t *testing.T) {
 	})
 }
 
+func TestAccResourceValueWithEnvEnvDeletedOutManually(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+	appID := fmt.Sprintf("val-test-app-%d", time.Now().UnixNano())
+
+	envID := "dev"
+	key := "VAL_1"
+
+	orgID := os.Getenv("HUMANITEC_ORG")
+	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
+
+	var client *humanitec.Client
+	var err error
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+
+			client, err = NewHumanitecClient(apiHost, token, "test", nil)
+			assert.NoError(err)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccResourceVALUETestAccResourceValueWithEnv(appID, envID, key, "Example value"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val1", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_env_val1", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_env_val1", "description", "Example value"),
+					func(_ *terraform.State) error {
+						// Manually delete the env via the API
+						resp, err := client.DeleteEnvironmentWithResponse(ctx, orgID, appID, envID)
+						if err != nil {
+							return err
+						}
+
+						if resp.StatusCode() != 204 {
+							return fmt.Errorf("expected status code 204, got %d, body: %s", resp.StatusCode(), string(resp.Body))
+						}
+
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
 func testAccResourceVALUETestAccResourceValue(appID, key, description string) string {
 	return fmt.Sprintf(`
 resource "humanitec_application" "val_test" {
@@ -324,7 +379,7 @@ resource "humanitec_value" "app_val1" {
 
 resource "humanitec_value" "app_env_val1" {
 	app_id = humanitec_application.val_test.id
-	env_id = "%s"
+	env_id = humanitec_environment.dev.id
 
 	key         = "%s"
 	description = "%s"
@@ -335,7 +390,7 @@ resource "humanitec_value" "app_env_val1" {
 		humanitec_value.app_val1
 	]
 }
-`, appID, envID, key, envID, key, description)
+`, appID, envID, key, key, description)
 }
 
 func testAccResourceVALUETestAccResourceValueSecretRef(appID, key, secretPath, description, version string) string {

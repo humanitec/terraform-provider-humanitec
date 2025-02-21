@@ -322,6 +322,11 @@ func (r *ResourceValue) Read(ctx context.Context, req resource.ReadRequest, resp
 			return
 		}
 
+		if httpResp.StatusCode() == 400 {
+			resp.Diagnostics.AddWarning("Environment not found", fmt.Sprintf("The environment with given value (%s) was deleted outside Terraform", data.Key.ValueString()))
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		if httpResp.StatusCode() != 200 {
 			resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to read value, unexpected status code: %d, body: %s", httpResp.StatusCode(), httpResp.Body))
 			return
