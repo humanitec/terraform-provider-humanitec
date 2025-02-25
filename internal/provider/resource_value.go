@@ -339,7 +339,7 @@ func (r *ResourceValue) Read(ctx context.Context, req resource.ReadRequest, resp
 	// TODO Ideally the API should allow to fetch a value by KEY
 	key := data.Key.ValueString()
 	value, found := findInSlicePtr(res, func(a client.ValueResponse) bool {
-		return a.Key == key
+		return a.Key == key && (data.EnvID.IsNull() || a.Source == client.Env)
 	})
 
 	if !found {

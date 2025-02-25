@@ -331,6 +331,15 @@ func TestAccResourceValueWithEnvEnvDeletedOutManually(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
+			// Reapply after manually deleted testing
+			{
+				Config: testAccResourceVALUETestAccResourceValueWithEnv(appID, envID, key, "Example value"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_value.app_val1", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_env_val1", "key", key),
+					resource.TestCheckResourceAttr("humanitec_value.app_env_val1", "description", "Example value"),
+				),
+			},
 			// Delete testing automatically occurs in TestCase
 		},
 	})
