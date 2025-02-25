@@ -18,7 +18,7 @@ An entity or individual who has access to the Humanitec platform.
 ### Required
 
 - `name` (String) The name the user goes by.
-- `role` (String) The role that the service user should have on the organization it is created in. Could be `member`, `artefactContributor`, `manager` or `administrator`.
+- `role` (String) The role that the service user should have on the organization it is created in. Could be `member`, `artefactContributor`, `manager`, `orgViewer` or `administrator`.
 - `type` (String) The type of the account. Only users type `service` can be managed by Terraform.
 
 ### Optional

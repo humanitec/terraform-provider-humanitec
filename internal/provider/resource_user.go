@@ -58,7 +58,7 @@ func (r *ResourceUser) Schema(ctx context.Context, req resource.SchemaRequest, r
 				},
 			},
 			"role": schema.StringAttribute{
-				MarkdownDescription: "The role that the service user should have on the organization it is created in. Could be `member`, `artefactContributor`, `manager` or `administrator`.",
+				MarkdownDescription: "The role that the service user should have on the organization it is created in. Could be `member`, `artefactContributor`, `manager`, `orgViewer` or `administrator`.",
 				Required:            true,
 			},
 			"type": schema.StringAttribute{
