@@ -126,8 +126,8 @@ github.com/hashicorp/yamux v0.1.1/go.mod h1:CtWFDAQgb7dxtzFs4tWbplKIe2jSi3+5vKbg
 github.com/huandu/xstrings v1.3.3/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/huandu/xstrings v1.4.0 h1:D17IlohoQq4UcpqD7fDk80P7l+lwAmlFaBHgOipl2FU=
 github.com/huandu/xstrings v1.4.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
-github.com/humanitec/humanitec-go-autogen v0.0.0-20250205144346-704632a4c27d h1:hOYyO/mCLyM/1ASlNaNxi9YDTqzsOnjfbWvZMF+iin0=
-github.com/humanitec/humanitec-go-autogen v0.0.0-20250205144346-704632a4c27d/go.mod h1:3npLY/X5ijQIV40CwX9ag9VuzRPgg9+x4DFHgrBbfvg=
+github.com/humanitec/humanitec-go-autogen v0.0.0-20250407150854-07692805fb34 h1:ezD2UXnECAfuD+eqNft3dbMKv3AfGzEzSGoC5+m1pPY=
+github.com/humanitec/humanitec-go-autogen v0.0.0-20250407150854-07692805fb34/go.mod h1:3npLY/X5ijQIV40CwX9ag9VuzRPgg9+x4DFHgrBbfvg=
 github.com/imdario/mergo v0.3.11/go.mod h1:jmQim1M+e3UYxmgPu/WyfjB3N3VflVyUjjjwH0dnCYA=
 github.com/imdario/mergo v0.3.15 h1:M8XP7IuFNsqUx6VPK2P9OSmsYsI/YFaGil0uD21V3dM=
 github.com/imdario/mergo v0.3.15/go.mod h1:WBLT9ZmE3lPoWsEzCh9LPo3TiwVN+ZKEjmz+hD27ysY=

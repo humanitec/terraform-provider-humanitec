@@ -113,7 +113,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		resp.Diagnostics.AddWarning(
 			"Environment variable HUMANITEC_HOST has been deprecated",
 			"Environment variable HUMANITEC_HOST has been deprecated "+
-				"please use HUMANITEC_API_PREFIX instead to set your api prefix to the terraform driver.")
+				"please use HUMANITEC_API_PREFIX instead to set your api prefix to the terraform provider.")
 	}
 
 	if os.Getenv("HUMANITEC_API_PREFIX") != "" {
@@ -140,7 +140,7 @@ func (p *HumanitecProvider) Configure(ctx context.Context, req provider.Configur
 		resp.Diagnostics.AddWarning(
 			"Attribute host has been deprecated",
 			"Attribute hostT has been deprecated "+
-				"please use api_prefix instead to set your api prefix to the terraform driver.")
+				"please use api_prefix instead to set your api prefix to the terraform provider.")
 	}
 	if !data.APIPrefix.IsNull() {
 		apiPrefix = data.APIPrefix.ValueString()

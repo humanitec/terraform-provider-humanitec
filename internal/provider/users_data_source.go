@@ -116,7 +116,7 @@ func (d *UsersDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	httpResp, err := d.client.ListUserRolesInOrgWithResponse(ctx, d.orgId)
+	httpResp, err := d.client.ListUserRolesInOrgWithResponse(ctx, d.orgId, &client.ListUserRolesInOrgParams{})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to list users, got error: %s", err))
 		return

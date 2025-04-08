@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
@@ -75,9 +76,6 @@ To replicate the previous application resource behavior, use the example below.
 			"name": schema.StringAttribute{
 				MarkdownDescription: "The Human-friendly name for the Application.",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Read:   true,
@@ -124,12 +122,11 @@ func (r *ResourceApplication) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	id := data.ID.ValueString()
-	name := data.Name.ValueString()
 	skipEnvCreation := true
 
 	httpResp, err := r.client.CreateApplicationWithResponse(ctx, r.orgId, client.CreateApplicationJSONRequestBody{
-		Id:   id,
-		Name: name,
+		Id:                      id,
+		Name:                    data.Name.ValueString(),
 		SkipEnvironmentCreation: &skipEnvCreation,
 	})
 	if err != nil {
@@ -202,7 +199,46 @@ func (r *ResourceApplication) Read(ctx context.Context, req resource.ReadRequest
 }
 
 func (r *ResourceApplication) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	resp.Diagnostics.AddError("UNSUPPORTED_OPERATION", "Updating an application is currently not supported")
+	var data, state *ApplicationModel
+
+	// Read Terraform plan data into the model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	id := state.ID.ValueString()
+
+	var application *client.ApplicationResponse
+	updateApplicationResp, err := r.client.PatchApplicationWithResponse(ctx, r.orgId, id, client.ApplicationPatchPayload{
+		Name: data.Name.ValueString(),
+	})
+	if err != nil {
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update application, got error: %s", err))
+		return
+	}
+	switch updateApplicationResp.StatusCode() {
+	case http.StatusOK:
+		application = updateApplicationResp.JSON200
+	case http.StatusBadRequest:
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update application, Humanitec returned bad request: %s", updateApplicationResp.Body))
+		return
+	case http.StatusNotFound:
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update application, environment not found: %s", updateApplicationResp.Body))
+		return
+	case http.StatusPreconditionFailed:
+		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update application, the state of Terraform resource do not match resource in Humanitec: %s", updateApplicationResp.Body))
+		return
+	default:
+		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Unable to update application, unexpected status code: %d, body: %s", updateApplicationResp.StatusCode(), updateApplicationResp.Body))
+		return
+	}
+
+	parseApplicationResponse(application, data)
+
+	// Save updated data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *ResourceApplication) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

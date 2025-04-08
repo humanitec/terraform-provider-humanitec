@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccResourceApplication(t *testing.T) {
+func TestAccResourceApplicationWithUpdate(t *testing.T) {
 	assert := assert.New(t)
 	ctx := context.Background()
 	id := fmt.Sprintf("test-%d", time.Now().UnixNano())
@@ -28,6 +28,9 @@ func TestAccResourceApplication(t *testing.T) {
 	var client *humanitec.Client
 	var err error
 
+	name := "Test TF App Name"
+	updatedName := "Updated Test TF App Name"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
@@ -39,10 +42,18 @@ func TestAccResourceApplication(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccResourceApplication(id, "test-app-1"),
+				Config: testAccResourceApplication(id, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_application.app_test", "id", id),
-					resource.TestCheckResourceAttr("humanitec_application.app_test", "name", "test-app-1"),
+					resource.TestCheckResourceAttr("humanitec_application.app_test", "name", name),
+					testCheckNoEnvironmentsAreCreated(ctx, &client, orgID, id),
+				),
+			},
+			{
+				Config: testAccResourceApplication(id, updatedName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_application.app_test", "id", id),
+					resource.TestCheckResourceAttr("humanitec_application.app_test", "name", updatedName),
 					testCheckNoEnvironmentsAreCreated(ctx, &client, orgID, id),
 				),
 			},

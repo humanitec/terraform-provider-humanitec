@@ -134,8 +134,8 @@ func (r *ResourceApplicationUser) Create(ctx context.Context, req resource.Creat
 	err := retry.RetryContext(ctx, createTimeout, func() *retry.RetryError {
 		var err error
 		httpResp, err = r.client.CreateUserRoleInAppWithResponse(ctx, r.orgId, appID, client.CreateUserRoleInAppJSONRequestBody{
-			Id:   &userID,
-			Role: &role,
+			Id:   userID,
+			Role: role,
 		})
 		if err != nil {
 			return retry.NonRetryableError(err)
@@ -213,7 +213,7 @@ func (r *ResourceApplicationUser) Update(ctx context.Context, req resource.Updat
 	role := data.Role.ValueString()
 
 	httpResp, err := r.client.UpdateUserRoleInAppWithResponse(ctx, r.orgId, appID, userID, client.UpdateUserRoleInAppJSONRequestBody{
-		Role: &role,
+		Role: role,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update resource application user, got error: %s", err))
