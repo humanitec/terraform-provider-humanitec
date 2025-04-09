@@ -196,7 +196,7 @@ func (r *ResourceUser) Update(ctx context.Context, req resource.UpdateRequest, r
 	role := data.Role.ValueString()
 
 	httpResp, err := r.client.UpdateUserRoleInOrgWithResponse(ctx, r.orgId, id, client.RoleRequest{
-		Role: &role,
+		Role: role,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update user, got error: %s", err))

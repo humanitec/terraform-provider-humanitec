@@ -134,8 +134,8 @@ func (r *ResourceEnvironmentTypeUser) Create(ctx context.Context, req resource.C
 	err := retry.RetryContext(ctx, createTimeout, func() *retry.RetryError {
 		var err error
 		httpResp, err = r.client.CreateUserRoleInEnvTypeWithResponse(ctx, r.orgId, envTypeID, client.CreateUserRoleInEnvTypeJSONRequestBody{
-			Id:   &userID,
-			Role: &role,
+			Id:   userID,
+			Role: role,
 		})
 		if err != nil {
 			return retry.NonRetryableError(err)
@@ -211,7 +211,7 @@ func (r *ResourceEnvironmentTypeUser) Update(ctx context.Context, req resource.U
 	role := data.Role.ValueString()
 
 	httpResp, err := r.client.UpdateUserRoleInEnvTypeWithResponse(ctx, r.orgId, envTypeID, userID, client.UpdateUserRoleInEnvTypeJSONRequestBody{
-		Role: &role,
+		Role: role,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update resource environment type user, got error: %s", err))

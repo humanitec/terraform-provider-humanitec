@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.23.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.34.0
-	github.com/humanitec/humanitec-go-autogen v0.0.0-20250205144346-704632a4c27d
+	github.com/humanitec/humanitec-go-autogen v0.0.0-20250407150854-07692805fb34
 	github.com/justinrixx/retryhttp v1.0.1
 	github.com/stretchr/testify v1.10.0
 	sigs.k8s.io/yaml v1.4.0
