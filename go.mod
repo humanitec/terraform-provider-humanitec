@@ -1,8 +1,6 @@
 module github.com/humanitec/terraform-provider-humanitec
 
-go 1.23
-
-toolchain go1.23.6
+go 1.24.2
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.19.4
