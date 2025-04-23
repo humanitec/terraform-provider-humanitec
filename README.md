@@ -52,4 +52,5 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 make testacc
 ```
 
+
 Once changes are merged, a new release can be created through the [new releases](https://github.com/humanitec/terraform-provider-humanitec/releases/new) page. We use `v` in front of a semantic version and generate release notes using the button in Github.
