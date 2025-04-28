@@ -54,7 +54,7 @@ func (r *ResourceApplicationUser) Metadata(ctx context.Context, req resource.Met
 
 func (r *ResourceApplicationUser) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Resource Application User holds the mapping of role to user for an application.",
+		MarkdownDescription: "Resource Application User holds the mapping of role to user or group for an application.",
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -71,7 +71,7 @@ func (r *ResourceApplicationUser) Schema(ctx context.Context, req resource.Schem
 				},
 			},
 			"user_id": schema.StringAttribute{
-				MarkdownDescription: "The user ID that hold the role",
+				MarkdownDescription: "The user or group ID that holds the role",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
