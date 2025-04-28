@@ -3,12 +3,12 @@
 page_title: "humanitec_application_user Resource - terraform-provider-humanitec"
 subcategory: ""
 description: |-
-  Resource Application User holds the mapping of role to user for an application.
+  Resource Application User holds the mapping of role to user or group for an application.
 ---
 
 # humanitec_application_user (Resource)
 
-Resource Application User holds the mapping of role to user for an application.
+Resource Application User holds the mapping of role to user or group for an application.
 
 ## Example Usage
 
@@ -27,7 +27,7 @@ resource "humanitec_application_user" "another_owner" {
 
 - `app_id` (String) The Application ID.
 - `role` (String) The role that this user holds. Could be `viewer`, `developer` or `owner`.
-- `user_id` (String) The user ID that hold the role
+- `user_id` (String) The user or group ID that hold the role
 
 ### Optional
 
