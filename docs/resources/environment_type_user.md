@@ -3,12 +3,12 @@
 page_title: "humanitec_environment_type_user Resource - terraform-provider-humanitec"
 subcategory: ""
 description: |-
-  Resource Environment Type User holds the mapping of role to user for an environment type.
+  Resource Environment Type User holds the mapping of role to user or group for an environment type.
 ---
 
 # humanitec_environment_type_user (Resource)
 
-Resource Environment Type User holds the mapping of role to user for an environment type.
+Resource Environment Type User holds the mapping of role to user or group for an environment type.
 
 ## Example Usage
 
@@ -26,8 +26,8 @@ resource "humanitec_environment_type_user" "another_deployer" {
 ### Required
 
 - `env_type_id` (String) The Environment Type.
-- `role` (String) The role that this user holds. At this time, only `deployer` is supported.
-- `user_id` (String) The user ID that hold the role
+- `role` (String) The role that this user or group holds. At this time, only `deployer` is supported.
+- `user_id` (String) The user or group ID that holds the role
 
 ### Optional
 
