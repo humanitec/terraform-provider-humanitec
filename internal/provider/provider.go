@@ -239,6 +239,7 @@ func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Res
 		NewResourceWebhook,
 		NewResourceWorkloadProfileChartVersion,
 		NewResourceWorkloadProfile,
+		NewResourceUserGroup,
 	}
 }
 

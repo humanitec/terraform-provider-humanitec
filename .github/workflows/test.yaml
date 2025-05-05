@@ -20,6 +20,7 @@ jobs:
         env:
           HUMANITEC_ORG: ${{ secrets.HUMANITEC_ORG_ID }} # Reusing env variable on GitHub Actions
           HUMANITEC_TOKEN: ${{ secrets.HUMANITEC_TOKEN }}
+          HUMANITEC_TERRAFORM_ORG_IDP_ID: ${{ secrets.HUMANITEC_TERRAFORM_ORG_IDP_ID }}
   unit:
     name: Unit Tests
     runs-on: ubuntu-latest
