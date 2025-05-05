@@ -247,6 +247,7 @@ func (p *HumanitecProvider) DataSources(ctx context.Context) []func() datasource
 	return []func() datasource.DataSource{
 		NewSourceIPRangesDataSource,
 		NewUsersDataSource,
+		NewUserGroupDataSource,
 	}
 }
 
