@@ -52,28 +52,28 @@ func (r *ResourceUserGroup) Schema(ctx context.Context, req resource.SchemaReque
 				Required:            true,
 			},
 			"group_id": schema.StringAttribute{
-				MarkdownDescription: "The name of the group in the IdP",
+				MarkdownDescription: "The name of the group in the IdP. The Humanitec group is deleted and a new one is created if this value changes.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"id": schema.StringAttribute{
-				MarkdownDescription: "The identifier assigned from Humanitec to this group",
+				MarkdownDescription: "The identifier assigned from Humanitec to this group.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"idp_id": schema.StringAttribute{
-				MarkdownDescription: "The identifier of the IdP the group belongs to, as it is registered with Humanitec",
+				MarkdownDescription: "The identifier of the IdP the group belongs to, as it is registered with Humanitec. The Humanitec group is deleted and a new one is created if this value changes.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"created_at": schema.StringAttribute{
-				MarkdownDescription: "The time the group was first registered with Humanitec",
+				MarkdownDescription: "The time the group was first registered with Humanitec.",
 				Computed:            true,
 			},
 		},

@@ -17,14 +17,14 @@ A collection of Organization users.
 
 ### Required
 
-- `group_id` (String) The name of the group in the IdP
-- `idp_id` (String) The identifier of the IdP the group belongs to, as it is registered with Humanitec
+- `group_id` (String) The name of the group in the IdP. The Humanitec group is deleted and a new one is created if this value changes.
+- `idp_id` (String) The identifier of the IdP the group belongs to, as it is registered with Humanitec. The Humanitec group is deleted and a new one is created if this value changes.
 - `role` (String) The role that the group should have on the organization it is created in. Could be `member`, `artefactContributor`, `manager`, `orgViewer` or `administrator`.
 
 ### Read-Only
 
-- `created_at` (String) The time the group was first registered with Humanitec
-- `id` (String) The identifier assigned from Humanitec to this group
+- `created_at` (String) The time the group was first registered with Humanitec.
+- `id` (String) The identifier assigned from Humanitec to this group.
 
 ## Import
 
