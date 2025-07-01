@@ -64,8 +64,9 @@ type DefinitionResourceCriteriaModel struct {
 
 // DefinitionResourceProvisionModel describes the resource definition provision model.
 type DefinitionResourceProvisionModel struct {
-	IsDependant     types.Bool `tfsdk:"is_dependent"`
-	MatchDependents types.Bool `tfsdk:"match_dependents"`
+	IsDependant     types.Bool   `tfsdk:"is_dependent"`
+	MatchDependents types.Bool   `tfsdk:"match_dependents"`
+	Params          types.String `tfsdk:"params"`
 }
 
 // DefinitionResourceModel describes the resource data model.
@@ -158,6 +159,10 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 							Computed:            true,
 							Default:             booldefault.StaticBool(false),
 						},
+						"params": schema.StringAttribute{
+							MarkdownDescription: "Parameters to be passed to the co-provisioned resource. JSON encoded string.",
+							Optional:            true,
+						},
 					},
 				},
 			},
@@ -209,10 +214,20 @@ func parseProvisionInput(provision *map[string]client.ProvisionDependenciesRespo
 
 	data := make(map[string]DefinitionResourceProvisionModel, len(*provision))
 	for k, v := range *provision {
-		data[k] = DefinitionResourceProvisionModel{
+		model := DefinitionResourceProvisionModel{
 			IsDependant:     types.BoolValue(v.IsDependent),
 			MatchDependents: defaultFalseBoolValuePointer(v.MatchDependents),
+			Params:          types.StringNull(),
 		}
+
+		if v.Params != nil && len(*v.Params) > 0 {
+			paramsBytes, err := json.Marshal(*v.Params)
+			if err == nil {
+				model.Params = types.StringValue(string(paramsBytes))
+			}
+		}
+
+		data[k] = model
 	}
 
 	return &data
@@ -377,10 +392,17 @@ func provisionFromModel(data *map[string]DefinitionResourceProvisionModel) *map[
 	provision := make(map[string]client.ProvisionDependenciesRequest, len(*data))
 
 	for k, v := range *data {
-		provision[k] = client.ProvisionDependenciesRequest{
+		req := client.ProvisionDependenciesRequest{
 			IsDependent:     v.IsDependant.ValueBoolPointer(),
 			MatchDependents: v.MatchDependents.ValueBoolPointer(),
 		}
+		if !v.Params.IsNull() && !v.Params.IsUnknown() {
+			var params map[string]interface{}
+			if err := json.Unmarshal([]byte(v.Params.ValueString()), &params); err == nil {
+				req.Params = &params
+			}
+		}
+		provision[k] = req
 	}
 
 	return &provision
