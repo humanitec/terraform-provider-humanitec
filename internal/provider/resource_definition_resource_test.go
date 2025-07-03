@@ -148,7 +148,7 @@ func TestAccResourceDefinition(t *testing.T) {
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
-			name: "Provision",
+			name: "Provision - isDependent set",
 			configCreate: func() string {
 				return testAccResourceDefinitionProvisionResource(fmt.Sprintf("provision-test-%d", timestamp), "true")
 			},
@@ -158,6 +158,21 @@ func TestAccResourceDefinition(t *testing.T) {
 			resourceAttrName:             "humanitec_resource_definition.provision_test",
 			configUpdate: func() string {
 				return testAccResourceDefinitionProvisionResource(fmt.Sprintf("provision-test-%d", timestamp), "false")
+			},
+			resourceAttrNameUpdateValue2: staticString("false"),
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
+		},
+		{
+			name: "Provision",
+			configCreate: func() string {
+				return testAccResourceDefinitionProvisionResourceNoBooleans(fmt.Sprintf("provision-test-%d", timestamp))
+			},
+			resourceAttrNameIDValue:      fmt.Sprintf("provision-test-%d", timestamp),
+			resourceAttrNameUpdateKey:    "provision.awspolicy.is_dependent",
+			resourceAttrNameUpdateValue1: staticString("false"),
+			resourceAttrName:             "humanitec_resource_definition.provision_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionProvisionResourceNoBooleans(fmt.Sprintf("provision-test-%d", timestamp))
 			},
 			resourceAttrNameUpdateValue2: staticString("false"),
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
@@ -522,6 +537,30 @@ resource "humanitec_resource_definition" "provision_test" {
 	}
 }
 `, id, matchDependents)
+}
+
+func testAccResourceDefinitionProvisionResourceNoBooleans(id string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "provision_test" {
+	id          = "%s"
+	name        = "provision-test"
+	type        = "s3"
+	driver_type = "humanitec/s3"
+	provision = {
+		"awspolicy" = {
+			params = jsonencode({
+				"bucket" = "test-bucket"
+			})
+		}
+	}
+
+	driver_inputs = {
+		values_string = jsonencode({
+			"region" = "us-east-1"
+		})
+	}
+}
+`, id)
 }
 
 func testAccResourceDefinitionS3taticResourceWithSecretRefs(id, awsAccessKeyIDPath, awsSecretAccessKeyPath string) string {
