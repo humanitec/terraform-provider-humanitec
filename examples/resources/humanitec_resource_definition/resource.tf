@@ -11,6 +11,24 @@ resource "humanitec_resource_definition" "s3" {
   }
 }
 
+resource "humanitec_resource_definition" "dns" {
+  id   = "dns-newapp"
+  name = "dns-newapp"
+  type = "dns"
+
+  driver_type = "humanitec/newapp-io-dns"
+
+  provision = {
+    "ingress" = {
+      is_dependent     = false
+      match_dependents = false
+      params = jsonencode({
+        "host" = "$${resources.dns.host}"
+      })
+    }
+  }
+}
+
 resource "humanitec_resource_definition" "postgres" {
   id          = "db-dev"
   name        = "db-dev"

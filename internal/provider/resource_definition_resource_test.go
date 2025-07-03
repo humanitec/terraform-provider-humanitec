@@ -509,6 +509,9 @@ resource "humanitec_resource_definition" "provision_test" {
 		"awspolicy" = {
 			is_dependent = true
 			match_dependents = %s
+			params = jsonencode({
+				"bucket" = "test-bucket"
+			})
 		}
 	}
 

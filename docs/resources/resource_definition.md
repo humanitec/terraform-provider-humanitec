@@ -26,6 +26,24 @@ resource "humanitec_resource_definition" "s3" {
   }
 }
 
+resource "humanitec_resource_definition" "dns" {
+  id   = "dns-newapp"
+  name = "dns-newapp"
+  type = "dns"
+
+  driver_type = "humanitec/newapp-io-dns"
+
+  provision = {
+    "ingress" = {
+      is_dependent     = false
+      match_dependents = false
+      params = jsonencode({
+        "host" = "$${resources.dns.host}"
+      })
+    }
+  }
+}
+
 resource "humanitec_resource_definition" "postgres" {
   id          = "db-dev"
   name        = "db-dev"
@@ -144,6 +162,7 @@ Optional:
 
 - `is_dependent` (Boolean) If the co-provisioned resource is dependent on the current one.
 - `match_dependents` (Boolean) If the resources dependant on the main resource, are also dependant on the co-provisioned one.
+- `params` (String) Parameters to be passed to the co-provisioned resource. JSON encoded string.
 
 
 <a id="nestedatt--timeouts"></a>
