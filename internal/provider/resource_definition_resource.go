@@ -152,6 +152,7 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 						"is_dependent": schema.BoolAttribute{
 							MarkdownDescription: "If the co-provisioned resource is dependent on the current one.",
 							Optional:            true,
+							Computed:            true,
 						},
 						"match_dependents": schema.BoolAttribute{
 							MarkdownDescription: "If the resources dependant on the main resource, are also dependant on the co-provisioned one.",
