@@ -412,6 +412,7 @@ resource "humanitec_resource_definition" "s3_test" {
   name        = "s3-test"
   type        = "s3"
   driver_type = "%s"
+  provision   = null
 
   driver_inputs = {}
 }
@@ -498,6 +499,8 @@ resource "humanitec_resource_definition" "ingress_test" {
 			no_tls      = true
     })
   }
+
+  provision = {}
 }
 `, id, host)
 }

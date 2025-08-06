@@ -208,8 +208,11 @@ func parseOptionalString(input *string) types.String {
 	return types.StringValue(*input)
 }
 
-func parseProvisionInput(provision *map[string]client.ProvisionDependenciesResponse) *map[string]DefinitionResourceProvisionModel {
+func parseProvisionInput(provision *map[string]client.ProvisionDependenciesResponse, existing *map[string]DefinitionResourceProvisionModel) *map[string]DefinitionResourceProvisionModel {
 	if provision == nil {
+		if existing != nil {
+			return existing
+		}
 		return nil
 	}
 
@@ -251,7 +254,7 @@ func parseResourceDefinitionResponse(res *client.ResourceDefinitionResponse, dat
 	data.Type = types.StringValue(res.Type)
 	data.DriverType = types.StringValue(res.DriverType)
 	data.DriverAccount = parseOptionalString(res.DriverAccount)
-	data.Provision = parseProvisionInput(res.Provision)
+	data.Provision = parseProvisionInput(res.Provision, data.Provision)
 
 	driverInputs := res.DriverInputs
 
