@@ -65,7 +65,7 @@ func TestAccResourceValueWithSecretValue(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret"),
-					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs--%s--apps--%s--secret_values--%s", orgID, appID, key)),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "1"),
 				),
 			},
@@ -85,7 +85,7 @@ func TestAccResourceValueWithSecretValue(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret changed"),
-					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs--%s--apps--%s--secret_values--%s", orgID, appID, key)),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "2"),
 				),
 			},
@@ -109,7 +109,7 @@ func TestAccResourceValueWithSecretValueSecretRefValue(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret set via secret reference value"),
-					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs--%s--apps--%s--secret_values--%s", orgID, appID, key)),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "1"),
 				),
 			},
@@ -128,7 +128,7 @@ func TestAccResourceValueWithSecretValueSecretRefValue(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "key", key),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret set via secret reference value changed"),
-					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs--%s--apps--%s--secret_values--%s", orgID, appID, key)),
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.version", "2"),
 				),
 			},
@@ -180,7 +180,7 @@ func TestAccResourceValueWithSecretRef(t *testing.T) {
 				Config: testAccResourceVALUETestAccResourceValueSecret(appID, key, "Example value with secret reference updated with plain value"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "description", "Example value with secret reference updated with plain value"),
-					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs/%s/apps/%s/secret_values/%s/.value", orgID, appID, key)),
+					resource.TestCheckResourceAttr("humanitec_value.app_val_with_secret", "secret_ref.ref", fmt.Sprintf("orgs--%s--apps--%s--secret_values--%s", orgID, appID, key)),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
