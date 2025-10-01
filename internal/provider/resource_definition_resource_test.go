@@ -434,9 +434,15 @@ resource "humanitec_resource_definition" "postgres_test" {
       "host" = "127.0.0.1"
       "port" = 5432
     })
-    secrets_string = jsonencode({
-      "username" = "test"
-      "password" = "test"
+    secret_refs = jsonencode({
+      "username" = {
+        "ref" = "path/to/username",
+        "store" = "external-store"
+      },
+      "password" = {
+        "ref" = "path/to/password",
+        "store" = "external-store"
+      }
     })
   }
 }
@@ -680,11 +686,11 @@ resource "humanitec_resource_definition" "s3_test_with_secrets" {
 
 func getDefinitionSecretPath(defID string) string {
 	orgID := os.Getenv("HUMANITEC_ORG")
-	return fmt.Sprintf("orgs/%s/resources/defs/%s/driver_secrets", orgID, defID)
+	return fmt.Sprintf("orgs--%s--resources--defs--%s--driver_secrets", orgID, defID)
 }
 
 func getDefinitionSecretRef(id string, version int) string {
-	return fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s/aws_access_key_id/.value\",\"store\":\"humanitec\",\"version\":\"%d\"},\"aws_secret_access_key\":{\"ref\":\"%s/aws_secret_access_key/.value\",\"store\":\"humanitec\",\"version\":\"%d\"}}", getDefinitionSecretPath(id), version, getDefinitionSecretPath(id), version)
+	return fmt.Sprintf("{\"aws_access_key_id\":{\"ref\":\"%s--aws_access_key_id\",\"store\":\"qa-testing-grounds-sm\",\"version\":\"%d\"},\"aws_secret_access_key\":{\"ref\":\"%s--aws_secret_access_key\",\"store\":\"qa-testing-grounds-sm\",\"version\":\"%d\"}}", getDefinitionSecretPath(id), version, getDefinitionSecretPath(id), version)
 }
 
 func TestMergeResourceDefinitionSecretRefResponse(t *testing.T) {

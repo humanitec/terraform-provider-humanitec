@@ -78,7 +78,7 @@ func TestAccResourceSecretStore_Aws(t *testing.T) {
 			{
 				Config: testAccSecretStoreAwsSM(id, "access-key-id", "secret-access-key"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "primary", "true"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "primary", "false"),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "awssm.region", "eu-central-1"),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "awssm.auth.access_key_id", "access-key-id"),
 				),
@@ -97,7 +97,7 @@ func TestAccResourceSecretStore_Aws(t *testing.T) {
 			{
 				Config: testAccSecretStoreAwsSM(id, "access-key-id-changed", "secret-access-key"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "primary", "true"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "primary", "false"),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "awssm.region", "eu-central-1"),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_awssm_test", "awssm.auth.access_key_id", "access-key-id-changed"),
 				),
@@ -173,9 +173,9 @@ func TestAccResourceSecretStore_Vault(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccSecretStoreVault(id, "vault-url-changed", "vault-token-changed", true),
+				Config: testAccSecretStoreVault(id, "vault-url-changed", "vault-token-changed", false),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "primary", "true"),
+					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "primary", "false"),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.url", "vault-url-changed"),
 					resource.TestCheckResourceAttr("humanitec_secretstore.secret_store_vault_test", "vault.auth.token", "vault-token-changed"),
 				),
@@ -293,7 +293,6 @@ func testAccSecretStoreAwsSM(storeID, accessKeyID, secretAccessKey string) strin
 	return fmt.Sprintf(`
 	resource "humanitec_secretstore" "secret_store_awssm_test" {
 		id      = "%s"
-		primary = true
 		awssm = {
 			region   = "eu-central-1"
 			auth = {

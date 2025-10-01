@@ -1,6 +1,11 @@
 name: Terraform Provider Tests
 
-on: [push]
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    # Runs every Monday at 10 AM UTC.
+    - cron: '0 10 * * 1'
 
 jobs:
   acceptance:
