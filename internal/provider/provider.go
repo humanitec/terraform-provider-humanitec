@@ -230,6 +230,7 @@ func (p *HumanitecProvider) Resources(ctx context.Context) []func() resource.Res
 		NewResourcePipelineCriteria,
 		NewResourceRegistry,
 		NewResourceResourceClass,
+		NewResourceResourceType,
 		NewResourceResourceDriver,
 		NewResourceRule,
 		NewResourceSecretStore,
