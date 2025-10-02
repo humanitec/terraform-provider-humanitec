@@ -1,5 +1,5 @@
 resource "humanitec_resource_type" "demo" {
-  id       = "demo-type"
+  id       = "humanitec-org/demo-type"
   name     = "Demo Type"
   category = "Demo category"
   use      = "direct"
