@@ -52,7 +52,7 @@ func (r *ResourceResourceType) Schema(ctx context.Context, req resource.SchemaRe
 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				MarkdownDescription: "The ID of the resource type.",
+				MarkdownDescription: "The ID of the resource type. It should start with the Humanitec Organization ID followed by '/'.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -67,7 +67,7 @@ func (r *ResourceResourceType) Schema(ctx context.Context, req resource.SchemaRe
 				Optional:            true,
 			},
 			"use": schema.StringAttribute{
-				MarkdownDescription: "Kind of dependency between resource of this type and a workload. It should be one of: `direct`, `indirect`, `implicit`.",
+				MarkdownDescription: "Kind of dependency between resource of this type and a workload. It should be one of: `direct`, `indirect`.",
 				Required:            true,
 			},
 			"inputs_schema": schema.StringAttribute{

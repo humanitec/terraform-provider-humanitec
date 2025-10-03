@@ -14,7 +14,7 @@ Resource Types are templates for resources, which are used to drive Humanitec's 
 
 ```terraform
 resource "humanitec_resource_type" "demo" {
-  id       = "demo-type"
+  id       = "humanitec-org/demo-type"
   name     = "Demo Type"
   category = "Demo category"
   use      = "direct"
@@ -53,8 +53,8 @@ resource "humanitec_resource_type" "demo" {
 
 ### Required
 
-- `id` (String) The ID of the resource type.
-- `use` (String) Kind of dependency between resource of this type and a workload. It should be one of: `direct`, `indirect`, `implicit`.
+- `id` (String) The ID of the resource type. It should start with the Humanitec Organization ID followed by '/'.
+- `use` (String) Kind of dependency between resource of this type and a workload. It should be one of: `direct`, `indirect`.
 
 ### Optional
 
