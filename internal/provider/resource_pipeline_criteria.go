@@ -225,7 +225,9 @@ func (r *ResourcePipelineCriteria) Read(ctx context.Context, req resource.ReadRe
 		}
 		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	case http.StatusNotFound:
-		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to get pipeline criteria, organization or application not found: %s", clientResp.Body))
+		resp.Diagnostics.AddWarning("Pipeline criteria not found",
+			fmt.Sprintf("The pipeline criteria (%s) was deleted outside Terraform", data.Id.ValueString()))
+		resp.State.RemoveResource(ctx)
 		return
 	default:
 		resp.Diagnostics.AddError(HUM_API_ERR, fmt.Sprintf("Received unexpected status code when reading pipeline criteria: %d, body: %s", clientResp.StatusCode(), clientResp.Body))
