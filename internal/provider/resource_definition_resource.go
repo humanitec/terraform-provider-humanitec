@@ -211,7 +211,8 @@ func parseOptionalString(input *string) types.String {
 func parseProvisionInput(provision *map[string]client.ProvisionDependenciesResponse, existing *map[string]DefinitionResourceProvisionModel) *map[string]DefinitionResourceProvisionModel {
 	if provision == nil {
 		if existing != nil {
-			return existing
+			// previous state had a provision block (HCL `provision = {}` or `provision = { ... }`)
+			return &map[string]DefinitionResourceProvisionModel{}
 		}
 		return nil
 	}
