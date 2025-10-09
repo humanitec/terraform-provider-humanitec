@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/humanitec/humanitec-go-autogen"
+	"github.com/humanitec/humanitec-go-autogen/client"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -175,6 +178,21 @@ func TestAccResourceDefinition(t *testing.T) {
 				return testAccResourceDefinitionProvisionResourceNoBooleans(fmt.Sprintf("provision-test-%d", timestamp))
 			},
 			resourceAttrNameUpdateValue2: staticString("false"),
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
+		},
+		{
+			name: "Provision - remove block",
+			configCreate: func() string {
+				return testAccResourceDefinitionProvisionResource(fmt.Sprintf("provision-test-%d", timestamp), "true")
+			},
+			resourceAttrNameIDValue:      fmt.Sprintf("provision-test-%d", timestamp),
+			resourceAttrNameUpdateKey:    "provision.%",
+			resourceAttrNameUpdateValue1: staticString("1"),
+			resourceAttrName:             "humanitec_resource_definition.provision_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionProvisionResourceEmpty(fmt.Sprintf("provision-test-%d", timestamp))
+			},
+			resourceAttrNameUpdateValue2: staticString("0"),
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
@@ -388,6 +406,57 @@ func TestAccResourceDefinition_S3_static_secrets(t *testing.T) {
 	})
 }
 
+func TestAccResourceDefinition_ProvisionRemovedManually(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+	id := fmt.Sprintf("provision-manual-test-%d", time.Now().UnixNano())
+
+	orgID := os.Getenv("HUMANITEC_ORG")
+	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
+
+	var humClient *humanitec.Client
+	var err error
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+
+			humClient, err = NewHumanitecClient(apiHost, token, "test", nil)
+			assert.NoError(err)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceDefinitionProvisionResource(id, "true"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("humanitec_resource_definition.provision_test", "provision.%", "1"),
+					func(_ *terraform.State) error {
+						// Manually update the resource definition via the API to remove the provision block
+						httpResp, err := humClient.UpdateResourceDefinitionWithResponse(ctx, orgID, id, client.UpdateResourceDefinitionJSONRequestBody{
+							Name:      "provision-test",
+							Provision: &map[string]client.ProvisionDependenciesRequest{},
+						})
+						if err != nil {
+							return err
+						}
+
+						if httpResp.StatusCode() != 200 {
+							return fmt.Errorf("expected status code 200, got %d, body: %s", httpResp.StatusCode(), string(httpResp.Body))
+						}
+
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccResourceDefinitionS3Resource(id, region string) string {
 	return fmt.Sprintf(`
 resource "humanitec_resource_definition" "s3_test" {
@@ -562,6 +631,24 @@ resource "humanitec_resource_definition" "provision_test" {
 			})
 		}
 	}
+
+	driver_inputs = {
+		values_string = jsonencode({
+			"region" = "us-east-1"
+		})
+	}
+}
+`, id)
+}
+
+func testAccResourceDefinitionProvisionResourceEmpty(id string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "provision_test" {
+	id          = "%s"
+	name        = "provision-test"
+	type        = "s3"
+	driver_type = "humanitec/s3"
+	provision = {}
 
 	driver_inputs = {
 		values_string = jsonencode({
