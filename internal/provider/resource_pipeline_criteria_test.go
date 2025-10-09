@@ -2,11 +2,15 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/humanitec/humanitec-go-autogen"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func TestResourcePipelineCriteria(t *testing.T) {
@@ -112,6 +116,92 @@ resource humanitec_pipeline_criteria "c1" {
 					return "", fmt.Errorf("failed to find resource in state")
 				},
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccResourcePipelineCriteria_DeletedManually(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+	testUid := int(time.Now().UnixMilli())
+
+	orgID := os.Getenv("HUMANITEC_ORG")
+	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
+
+	var client *humanitec.Client
+	var err error
+
+	baseConfig := fmt.Sprintf(`
+resource "humanitec_application" "app" {
+	id = "app%[1]d"
+	name = "App %[1]d"
+}
+
+resource "humanitec_pipeline" "pip" {
+	app_id = humanitec_application.app.id
+	definition = <<-EOT
+		name: Test pipeline
+		on:
+		  deployment_request: {}
+		jobs:
+		  thing:
+		    steps:
+		    - uses: actions/humanitec/log
+		      with:
+		        message: $${{ tojson(inputs) }}
+	EOT
+}
+`, testUid)
+	criteriaV1 := `
+resource "humanitec_pipeline_criteria" "c1" {
+	app_id = humanitec_application.app.id
+	pipeline_id = humanitec_pipeline.pip.id
+    deployment_request = {
+        env_id = "development"
+    }
+}
+`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			client, err = NewHumanitecClient(apiHost, token, "test", nil)
+			assert.NoError(err)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: baseConfig + criteriaV1,
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						res, ok := s.RootModule().Resources["humanitec_pipeline_criteria.c1"]
+						if !ok {
+							return fmt.Errorf("Not found: %s", "humanitec_pipeline_criteria.c1")
+						}
+
+						appID := res.Primary.Attributes["app_id"]
+						pipelineID := res.Primary.Attributes["pipeline_id"]
+						criteriaID := res.Primary.ID
+
+						// Manually delete the pipeline criteria via the API
+						resp, err := client.DeletePipelineCriteriaWithResponse(ctx, orgID, appID, pipelineID, criteriaID)
+						if err != nil {
+							return err
+						}
+
+						if resp.StatusCode() != 204 {
+							return fmt.Errorf("expected status code 204, got %d, body: %s", resp.StatusCode(), string(resp.Body))
+						}
+
+						return nil
+					},
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
