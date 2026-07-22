@@ -79,8 +79,9 @@ type DefinitionResourceModel struct {
 	DriverInputs  *DefinitionResourceDriverInputsModel         `tfsdk:"driver_inputs"`
 	Provision     *map[string]DefinitionResourceProvisionModel `tfsdk:"provision"`
 
-	ForceDelete types.Bool     `tfsdk:"force_delete"`
-	Timeouts    timeouts.Value `tfsdk:"timeouts"`
+	ForceDelete         types.Bool     `tfsdk:"force_delete"`
+	InPlaceDriverChange types.Bool     `tfsdk:"in_place_driver_change"`
+	Timeouts            timeouts.Value `tfsdk:"timeouts"`
 }
 
 func (r *ResourceDefinitionResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -173,6 +174,12 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
+			"in_place_driver_change": schema.BoolAttribute{
+				MarkdownDescription: "If set to `true`, the Operator will not delete resources provisioned by the previous driver when `driver_type` changes on a later update; the new driver takes over the existing infrastructure in place. Applies to the Operator provisioning path only.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Delete: true,
 			}),
@@ -255,6 +262,7 @@ func parseResourceDefinitionResponse(res *client.ResourceDefinitionResponse, dat
 	data.Type = types.StringValue(res.Type)
 	data.DriverType = types.StringValue(res.DriverType)
 	data.DriverAccount = parseOptionalString(res.DriverAccount)
+	data.InPlaceDriverChange = types.BoolValue(res.InPlaceDriverChange)
 	data.Provision = parseProvisionInput(res.Provision, data.Provision)
 
 	driverInputs := res.DriverInputs
@@ -477,13 +485,14 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	httpResp, err := r.client().CreateResourceDefinitionWithResponse(ctx, r.orgId(), client.CreateResourceDefinitionRequestRequest{
-		Provision:     provision,
-		DriverAccount: data.DriverAccount.ValueStringPointer(),
-		DriverInputs:  driverInputs,
-		DriverType:    data.DriverType.ValueString(),
-		Id:            data.ID.ValueString(),
-		Name:          data.Name.ValueString(),
-		Type:          data.Type.ValueString(),
+		Provision:           provision,
+		DriverAccount:       data.DriverAccount.ValueStringPointer(),
+		DriverInputs:        driverInputs,
+		DriverType:          data.DriverType.ValueString(),
+		Id:                  data.ID.ValueString(),
+		InPlaceDriverChange: data.InPlaceDriverChange.ValueBoolPointer(),
+		Name:                data.Name.ValueString(),
+		Type:                data.Type.ValueString(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create resource definition, got error: %s", err))
@@ -562,11 +571,12 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 	provision := provisionFromModel(data.Provision)
 
 	httpResp, err := r.client().UpdateResourceDefinitionWithResponse(ctx, r.orgId(), defID, client.UpdateResourceDefinitionRequestRequest{
-		DriverType:    data.DriverType.ValueStringPointer(),
-		DriverAccount: data.DriverAccount.ValueStringPointer(),
-		DriverInputs:  driverInputs,
-		Name:          data.Name.ValueString(),
-		Provision:     provision,
+		DriverType:          data.DriverType.ValueStringPointer(),
+		DriverAccount:       data.DriverAccount.ValueStringPointer(),
+		DriverInputs:        driverInputs,
+		InPlaceDriverChange: data.InPlaceDriverChange.ValueBoolPointer(),
+		Name:                data.Name.ValueString(),
+		Provision:           provision,
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read definition, got error: %s", err))

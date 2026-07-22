@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.29.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
-	github.com/humanitec/humanitec-go-autogen v0.0.0-20250924140420-4ea9a444b38d
+	github.com/humanitec/humanitec-go-autogen v0.0.0-20260722114248-e82e00377cad
 	github.com/justinrixx/retryhttp v1.0.1
 	github.com/stretchr/testify v1.11.1
 	sigs.k8s.io/yaml v1.6.0
@@ -64,7 +64,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/oapi-codegen/runtime v1.1.2 // indirect
+	github.com/oapi-codegen/runtime v1.3.1 // indirect
 	github.com/oklog/run v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/posener/complete v1.2.3 // indirect
