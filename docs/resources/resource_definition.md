@@ -142,6 +142,7 @@ resource "humanitec_resource_definition" "azure-blob" {
 - `driver_account` (String) Security account required by the driver.
 - `driver_inputs` (Attributes) Data that should be passed around split by sensitivity. (see [below for nested schema](#nestedatt--driver_inputs))
 - `force_delete` (Boolean) If set to `true`, will mark the Resource Definition for deletion, even if it affects existing Active Resources.
+- `in_place_driver_change` (Boolean) If set to `true`, the Operator will not delete resources provisioned by the previous driver when `driver_type` changes on a later update; the new driver takes over the existing infrastructure in place. Applies to the Operator provisioning path only.
 - `provision` (Attributes Map) ProvisionDependencies defines resources which are needed to be co-provisioned with the current resource. (see [below for nested schema](#nestedatt--provision))
 - `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
 

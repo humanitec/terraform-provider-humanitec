@@ -61,6 +61,51 @@ func TestAccResourceDefinition(t *testing.T) {
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
+			name: "S3 - update in_place_driver_change",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3ResourceWithInPlaceDriverChange(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1", false)
+			},
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-%d", timestamp),
+			resourceAttrNameUpdateKey:    "in_place_driver_change",
+			resourceAttrNameUpdateValue1: staticString("false"),
+			resourceAttrName:             "humanitec_resource_definition.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3ResourceWithInPlaceDriverChange(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1", true)
+			},
+			resourceAttrNameUpdateValue2: staticString("true"),
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
+		},
+		{
+			name: "S3 - update in_place_driver_change (true to false)",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3ResourceWithInPlaceDriverChange(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1", true)
+			},
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-%d", timestamp),
+			resourceAttrNameUpdateKey:    "in_place_driver_change",
+			resourceAttrNameUpdateValue1: staticString("true"),
+			resourceAttrName:             "humanitec_resource_definition.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3ResourceWithInPlaceDriverChange(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1", false)
+			},
+			resourceAttrNameUpdateValue2: staticString("false"),
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
+		},
+		{
+			name: "S3 - in_place_driver_change defaults to false when unset",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
+			},
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-%d", timestamp),
+			resourceAttrNameUpdateKey:    "in_place_driver_change",
+			resourceAttrNameUpdateValue1: staticString("false"),
+			resourceAttrName:             "humanitec_resource_definition.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
+			},
+			resourceAttrNameUpdateValue2: staticString("false"),
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
+		},
+		{
 			name: "S3 - check the driver does not change",
 			configCreate: func() string {
 				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
@@ -486,6 +531,24 @@ resource "humanitec_resource_definition" "s3_test" {
   driver_inputs = {}
 }
 `, id, driver_type)
+}
+
+func testAccResourceDefinitionS3ResourceWithInPlaceDriverChange(id, region string, inPlaceDriverChange bool) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test" {
+  id                     = "%s"
+  name                   = "s3-test"
+  type                   = "s3"
+  driver_type            = "humanitec/s3"
+  in_place_driver_change = %t
+
+  driver_inputs = {
+    values_string = jsonencode({
+      "region" = "%s"
+    })
+  }
+}
+`, id, inPlaceDriverChange, region)
 }
 
 func testAccResourceDefinitionPostgresResource(id, name string) string {
