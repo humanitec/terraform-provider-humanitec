@@ -176,7 +176,7 @@ func parseWebhookResponse(ctx context.Context, res *client.WebhookResponse, data
 	return diags
 }
 
-func parseWebhookUpdateResponse(ctx context.Context, res *client.WebhookUpdateResponse, data *WebhookModel) diag.Diagnostics {
+func parseWebhookUpdateResponse(ctx context.Context, res *client.WebhookResponse, data *WebhookModel) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 
 	data.Disabled = types.BoolPointerValue(res.Disabled)
@@ -191,13 +191,11 @@ func parseWebhookUpdateResponse(ctx context.Context, res *client.WebhookUpdateRe
 
 	triggers := []WebhookTriggerModel{}
 
-	if res.Triggers != nil {
-		for _, trigger := range *res.Triggers {
-			triggers = append(triggers, WebhookTriggerModel{
-				Scope: types.StringValue(trigger.Scope),
-				Type:  types.StringValue(trigger.Type),
-			})
-		}
+	for _, trigger := range res.Triggers {
+		triggers = append(triggers, WebhookTriggerModel{
+			Scope: types.StringValue(trigger.Scope),
+			Type:  types.StringValue(trigger.Type),
+		})
 	}
 	data.Triggers = triggers
 
@@ -223,30 +221,41 @@ func mapToJSONFieldRequest(ctx context.Context, tfmap basetypes.MapValue) (clien
 	return j, diags
 }
 
-func toWebhookRequest(ctx context.Context, data *WebhookModel) (*client.WebhookRequest, diag.Diagnostics) {
-	diags := diag.Diagnostics{}
+func toWebhookUpdateRequest(ctx context.Context, data *WebhookModel) (client.WebhookUpdateRequest, diag.Diagnostics) {
+	var diags diag.Diagnostics
 
-	headers, fieldDiags := mapToJSONFieldRequest(ctx, data.Headers)
-	diags.Append(fieldDiags...)
+	headers, d := mapToJSONFieldRequest(ctx, data.Headers)
+	diags.Append(d...)
 
-	payload, fieldDiags := mapToJSONFieldRequest(ctx, data.Payload)
-	diags.Append(fieldDiags...)
+	payload, d := mapToJSONFieldRequest(ctx, data.Payload)
+	diags.Append(d...)
 
-	triggers := []client.EventBaseRequest{}
-	for _, trigger := range data.Triggers {
+	triggers := make([]client.EventBaseRequest, 0, len(data.Triggers))
+	for _, t := range data.Triggers {
 		triggers = append(triggers, client.EventBaseRequest{
-			Scope: trigger.Scope.ValueStringPointer(),
-			Type:  trigger.Type.ValueStringPointer(),
+			Scope: t.Scope.ValueStringPointer(),
+			Type:  t.Type.ValueStringPointer(),
 		})
 	}
 
-	return &client.WebhookRequest{
+	return client.WebhookUpdateRequest{
 		Disabled: data.Disabled.ValueBoolPointer(),
 		Headers:  &headers,
-		Id:       data.ID.ValueStringPointer(),
 		Payload:  &payload,
 		Triggers: &triggers,
 		Url:      data.URL.ValueStringPointer(),
+	}, diags
+}
+
+func toWebhookCreateRequest(ctx context.Context, data *WebhookModel) (client.WebhookCreateRequest, diag.Diagnostics) {
+	u, diags := toWebhookUpdateRequest(ctx, data)
+	return client.WebhookCreateRequest{
+		Disabled: u.Disabled,
+		Headers:  u.Headers,
+		Id:       data.ID.ValueStringPointer(),
+		Payload:  u.Payload,
+		Triggers: u.Triggers,
+		Url:      u.Url,
 	}, diags
 }
 
@@ -262,13 +271,13 @@ func (r *ResourceWebhook) Create(ctx context.Context, req resource.CreateRequest
 
 	appID := data.AppID.ValueString()
 
-	httpBody, diags := toWebhookRequest(ctx, data)
+	httpBody, diags := toWebhookCreateRequest(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	httpResp, err := r.client.PostOrgsOrgIdAppsAppIdWebhooksWithResponse(ctx, r.orgId, appID, *httpBody)
+	httpResp, err := r.client.PostOrgsOrgIdAppsAppIdWebhooksWithResponse(ctx, r.orgId, appID, httpBody)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to create webhook, got error: %s", err))
 		return
@@ -335,13 +344,13 @@ func (r *ResourceWebhook) Update(ctx context.Context, req resource.UpdateRequest
 	appID := data.AppID.ValueString()
 	id := data.ID.ValueString()
 
-	httpBody, diags := toWebhookRequest(ctx, data)
+	httpBody, diags := toWebhookUpdateRequest(ctx, data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	httpResp, err := r.client.PatchOrgsOrgIdAppsAppIdWebhooksJobIdWithResponse(ctx, r.orgId, appID, id, *httpBody)
+	httpResp, err := r.client.PatchOrgsOrgIdAppsAppIdWebhooksJobIdWithResponse(ctx, r.orgId, appID, id, httpBody)
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to update value, got error: %s", err))
 		return
