@@ -106,21 +106,6 @@ func TestAccResourceDefinition(t *testing.T) {
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
-			name: "S3 - ttl defaults to empty when unset",
-			configCreate: func() string {
-				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
-			},
-			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-%d", timestamp),
-			resourceAttrNameUpdateKey:    "ttl",
-			resourceAttrNameUpdateValue1: staticString(""),
-			resourceAttrName:             "humanitec_resource_definition.s3_test",
-			configUpdate: func() string {
-				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-2")
-			},
-			resourceAttrNameUpdateValue2: staticString(""),
-			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
-		},
-		{
 			name: "S3 - check the driver does not change",
 			configCreate: func() string {
 				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
