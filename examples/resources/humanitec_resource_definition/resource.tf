@@ -9,6 +9,9 @@ resource "humanitec_resource_definition" "s3" {
       region = "us-east-1"
     })
   }
+
+  # Delete unreferenced Active Resources after 14 days.
+  ttl = "336h"
 }
 
 resource "humanitec_resource_definition" "dns" {
@@ -17,6 +20,9 @@ resource "humanitec_resource_definition" "dns" {
   type = "dns"
 
   driver_type = "humanitec/newapp-io-dns"
+
+  # Delete Active Resources in the first deployment that no longer references them.
+  ttl = "0s"
 
   provision = {
     "ingress" = {
