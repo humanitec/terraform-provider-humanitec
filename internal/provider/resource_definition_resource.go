@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -79,9 +80,10 @@ type DefinitionResourceModel struct {
 	DriverInputs  *DefinitionResourceDriverInputsModel         `tfsdk:"driver_inputs"`
 	Provision     *map[string]DefinitionResourceProvisionModel `tfsdk:"provision"`
 
-	ForceDelete         types.Bool     `tfsdk:"force_delete"`
-	InPlaceDriverChange types.Bool     `tfsdk:"in_place_driver_change"`
-	Timeouts            timeouts.Value `tfsdk:"timeouts"`
+	ForceDelete         types.Bool          `tfsdk:"force_delete"`
+	InPlaceDriverChange types.Bool          `tfsdk:"in_place_driver_change"`
+	TTL                 DurationStringValue `tfsdk:"ttl"`
+	Timeouts            timeouts.Value      `tfsdk:"timeouts"`
 }
 
 func (r *ResourceDefinitionResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -180,6 +182,16 @@ func (r *ResourceDefinitionResource) Schema(ctx context.Context, req resource.Sc
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
+			"ttl": schema.StringAttribute{
+				MarkdownDescription: "The minimum time an Active Resource provisioned from this definition is kept once no deployment references it, as a Go duration in whole seconds (e.g. `\"0s\"`, `\"336h\"`). Omitted or `\"\"` means it is never deleted automatically.",
+				CustomType:          DurationStringType{},
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
+				Validators: []validator.String{
+					durationStringValidator{},
+				},
+			},
 			"timeouts": timeouts.Attributes(ctx, timeouts.Opts{
 				Delete: true,
 			}),
@@ -263,6 +275,7 @@ func parseResourceDefinitionResponse(res *client.ResourceDefinitionResponse, dat
 	data.DriverType = types.StringValue(res.DriverType)
 	data.DriverAccount = parseOptionalString(res.DriverAccount)
 	data.InPlaceDriverChange = types.BoolValue(res.InPlaceDriverChange)
+	data.TTL = NewDurationStringValue(res.Ttl)
 	data.Provision = parseProvisionInput(res.Provision, data.Provision)
 
 	driverInputs := res.DriverInputs
@@ -492,6 +505,7 @@ func (r *ResourceDefinitionResource) Create(ctx context.Context, req resource.Cr
 		Id:                  data.ID.ValueString(),
 		InPlaceDriverChange: data.InPlaceDriverChange.ValueBoolPointer(),
 		Name:                data.Name.ValueString(),
+		Ttl:                 data.TTL.ValueStringPointer(),
 		Type:                data.Type.ValueString(),
 	})
 	if err != nil {
@@ -577,6 +591,7 @@ func (r *ResourceDefinitionResource) Update(ctx context.Context, req resource.Up
 		InPlaceDriverChange: data.InPlaceDriverChange.ValueBoolPointer(),
 		Name:                data.Name.ValueString(),
 		Provision:           provision,
+		Ttl:                 data.TTL.ValueStringPointer(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError(HUM_CLIENT_ERR, fmt.Sprintf("Unable to read definition, got error: %s", err))

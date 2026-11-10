@@ -106,6 +106,21 @@ func TestAccResourceDefinition(t *testing.T) {
 			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
 		},
 		{
+			name: "S3 - ttl defaults to empty when unset",
+			configCreate: func() string {
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
+			},
+			resourceAttrNameIDValue:      fmt.Sprintf("s3-test-%d", timestamp),
+			resourceAttrNameUpdateKey:    "ttl",
+			resourceAttrNameUpdateValue1: staticString(""),
+			resourceAttrName:             "humanitec_resource_definition.s3_test",
+			configUpdate: func() string {
+				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-2")
+			},
+			resourceAttrNameUpdateValue2: staticString(""),
+			importStateVerifyIgnore:      []string{"driver_inputs.secrets_string", "force_delete"},
+		},
+		{
 			name: "S3 - check the driver does not change",
 			configCreate: func() string {
 				return testAccResourceDefinitionS3Resource(fmt.Sprintf("s3-test-%d", timestamp), "us-east-1")
@@ -531,6 +546,112 @@ resource "humanitec_resource_definition" "s3_test" {
   driver_inputs = {}
 }
 `, id, driver_type)
+}
+
+func TestAccResourceDefinition_TTL(t *testing.T) {
+	id := fmt.Sprintf("s3-ttl-test-%d", time.Now().UnixNano())
+	resName := "humanitec_resource_definition.s3_test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Unset defaults to never
+			{
+				Config: testAccResourceDefinitionS3Resource(id, "us-east-1"),
+				Check:  resource.TestCheckResourceAttr(resName, "ttl", ""),
+			},
+			// Set: the API returns "336h0m0s", the plan after apply must stay empty
+			{
+				Config: testAccResourceDefinitionS3ResourceWithTTL(id, "336h"),
+				Check:  resource.TestCheckResourceAttr(resName, "ttl", "336h"),
+			},
+			// Re-applying the same value after a refresh shows no drift
+			{
+				Config:   testAccResourceDefinitionS3ResourceWithTTL(id, "336h"),
+				PlanOnly: true,
+			},
+			// Import reads the API's canonical form
+			{
+				ResourceName:            resName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"driver_inputs.secrets_string", "force_delete", "ttl"},
+				ImportStateCheck: func(states []*terraform.InstanceState) error {
+					if got := states[0].Attributes["ttl"]; got != "336h0m0s" {
+						return fmt.Errorf("expected imported ttl 336h0m0s, got %q", got)
+					}
+					return nil
+				},
+			},
+			// Change
+			{
+				Config: testAccResourceDefinitionS3ResourceWithTTL(id, "1h30m"),
+				Check:  resource.TestCheckResourceAttr(resName, "ttl", "1h30m"),
+			},
+			// Zero is distinct from never
+			{
+				Config: testAccResourceDefinitionS3ResourceWithTTL(id, "0s"),
+				Check:  resource.TestCheckResourceAttr(resName, "ttl", "0s"),
+			},
+			// Remove resets to never
+			{
+				Config: testAccResourceDefinitionS3Resource(id, "us-east-1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resName, "ttl", ""),
+					func(_ *terraform.State) error {
+						return assertResourceDefinitionTTL(id, "")
+					},
+				),
+			},
+		},
+	})
+}
+
+func assertResourceDefinitionTTL(defID, expected string) error {
+	ctx := context.Background()
+	orgID := os.Getenv("HUMANITEC_ORG")
+	token := os.Getenv("HUMANITEC_TOKEN")
+	apiHost := os.Getenv("HUMANITEC_HOST")
+	if apiHost == "" {
+		apiHost = humanitec.DefaultAPIHost
+	}
+
+	humClient, err := NewHumanitecClient(apiHost, token, "test", nil)
+	if err != nil {
+		return err
+	}
+
+	httpResp, err := humClient.GetResourceDefinitionWithResponse(ctx, orgID, defID, nil)
+	if err != nil {
+		return err
+	}
+	if httpResp.StatusCode() != 200 {
+		return fmt.Errorf("expected status code 200, got %d, body: %s", httpResp.StatusCode(), string(httpResp.Body))
+	}
+	if got := httpResp.JSON200.Ttl; got != expected {
+		return fmt.Errorf("expected API ttl %q, got %q", expected, got)
+	}
+
+	return nil
+}
+
+func testAccResourceDefinitionS3ResourceWithTTL(id, ttl string) string {
+	return fmt.Sprintf(`
+resource "humanitec_resource_definition" "s3_test" {
+  id          = "%s"
+  name        = "s3-test"
+  type        = "s3"
+  driver_type = "humanitec/s3"
+  ttl         = "%s"
+
+  driver_inputs = {
+    values_string = jsonencode({
+      "region" = "us-east-1"
+    })
+  }
+}
+`, id, ttl)
 }
 
 func testAccResourceDefinitionS3ResourceWithInPlaceDriverChange(id, region string, inPlaceDriverChange bool) string {
